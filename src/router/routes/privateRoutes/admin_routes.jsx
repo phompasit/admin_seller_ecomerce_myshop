@@ -4,10 +4,18 @@ import SellerManagementDashboard from "../../../pages/admin_pages/SellerManageme
 import ProductManagement from "../../../pages/admin_pages/ProductManagement";
 import OrderManagementDashboard from "../../../pages/admin_pages/OrderManagementDashboard";
 import FlashSaleAdminDashboard from "../../../pages/admin_pages/FlashSaleAdminDashboard";
+import Dashbord_admin from "../../../pages/admin_pages/Dashbord_admin";
+import Finance_admin from "../../../pages/admin_pages/Finance_admin";
 const Add_category = lazy(() =>
   import("../../../pages/admin_pages/AdminAddCategory")
 );
 export const admin_routes = [
+  //admin/dashbord_admin
+  {
+    path: "/admin/dashbord_admin",
+    element: <Dashbord_admin />,
+    role: "admin",
+  },
   {
     path: "/admin/add_category",
     element: <Add_category />,
@@ -40,6 +48,11 @@ export const admin_routes = [
   {
     path: "/admin/flash_sale",
     element: <FlashSaleAdminDashboard />,
+    role: "admin",
+  },
+    {
+    path: "/admin/finance",
+    element: <Finance_admin />,
     role: "admin",
   },
 ];

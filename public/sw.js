@@ -11,7 +11,7 @@ self.addEventListener("push", function (event) {
     body: data.body || "คุณมีการแจ้งเตือนใหม่จากระบบ",
     icon: "/logo192.png",
     data: {
-      url: data.url || "/", // <-- เพิ่ม url ที่ต้องการให้เปิดเมื่อคลิก
+      url: data.url || "http://localhost:5174/", // <-- เพิ่ม url ที่ต้องการให้เปิดเมื่อคลิก
     },
   };
 

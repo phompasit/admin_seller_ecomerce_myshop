@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -20,6 +20,7 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Icon,
 } from "@chakra-ui/react";
 import {
   FaCamera,
@@ -29,17 +30,19 @@ import {
 } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  get_user,
+  getVerifyUser,
   messageClear,
   updateSellerReject,
   verifyUserCreate,
 } from "../hooks/reducer/auth_reducer";
-import { useNavigate } from "react-router-dom";
 
 // Constants
 const VERIFICATION_STATUS = {
   PENDING: "pending",
   ACCESS: "access",
   REJECTED: "rejected",
+  DEFAULT: "default",
 };
 
 const DOCUMENT_TYPES = {
@@ -47,73 +50,273 @@ const DOCUMENT_TYPES = {
   PASSPORT: "passport",
 };
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png"];
-
-// Initial form data
-const INITIAL_VERIFICATION_DATA = {
-  fullName: "",
-  idNumber: "",
-  documentType: DOCUMENT_TYPES.ID_CARD,
-  birthDate: "",
-  expiryDate: "",
-  address: "",
+const FILE_CONSTRAINTS = {
+  MAX_SIZE: 5 * 1024 * 1024, // 5MB
+  ALLOWED_TYPES: ["image/jpeg", "image/jpg", "image/png"],
 };
 
-const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const toast = useToast();
+// Custom Hook สำหรับจัดการ Form
+const useIdentityForm = (sellerInfo_data) => {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    idNumber: "",
+    documentType: DOCUMENT_TYPES.ID_CARD,
+    birthDate: "",
+    expiryDate: "",
+    address: "",
+  });
 
-  const textColor = useColorModeValue("gray.600", "gray.300");
-  const { successMessage, errorMessage } = useSelector((state) => state?.auth);
+  const [files, setFiles] = useState({
+    idCardImage: null,
+    selfieImage: null,
+  });
 
-  // State management
-  const [isLoading, setIsLoading] = useState(false);
-  const [idCardImage, setIdCardImage] = useState(null);
-  const [selfieImage, setSelfieImage] = useState(null);
-  const [preview, setPreview] = useState({});
-  const [verificationStatus, setVerificationStatus] = useState(
-    VERIFICATION_STATUS.PENDING
-  );
-  const [verificationData, setVerificationData] = useState(
-    INITIAL_VERIFICATION_DATA
-  );
-  const [formErrors, setFormErrors] = useState({});
+  const [previews, setPreviews] = useState({
+    idCardImage: null,
+    selfieImage: null,
+  });
 
-  // Initialize form data from props
+  const [errors, setErrors] = useState({});
+
+  // Initialize form data
   useEffect(() => {
-    if (sellerInfo_data) {
-      setVerificationStatus(
-        sellerInfo_data?.verificationStatus || VERIFICATION_STATUS.PENDING
-      );
-      setVerificationData((prev) => ({
+    if (sellerInfo_data?.verificationData) {
+      setFormData((prev) => ({
         ...prev,
-        ...sellerInfo_data?.verificationData,
+        ...sellerInfo_data.verificationData,
       }));
+    }
 
-      if (sellerInfo_data?.idCardImage) {
-        setIdCardImage(sellerInfo_data?.idCardImage);
-        setPreview((prev) => ({
-          ...prev,
-          idCardImage: sellerInfo_data?.idCardImage,
-        }));
-      }
+    if (sellerInfo_data?.idCardImage) {
+      setPreviews((prev) => ({
+        ...prev,
+        idCardImage: sellerInfo_data.idCardImage,
+      }));
+    }
 
-      if (sellerInfo_data?.selfieImage) {
-        setSelfieImage(sellerInfo_data?.selfieImage);
-        setPreview((prev) => ({
-          ...prev,
-          selfieImage: sellerInfo_data?.selfieImage,
-        }));
-      }
+    if (sellerInfo_data?.selfieImage) {
+      setPreviews((prev) => ({
+        ...prev,
+        selfieImage: sellerInfo_data.selfieImage,
+      }));
     }
   }, [sellerInfo_data]);
+
+  const handleInputChange = useCallback(
+    (field, value) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+
+      // Clear error
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: null,
+        }));
+      }
+    },
+    [errors]
+  );
+
+  return {
+    formData,
+    files,
+    previews,
+    errors,
+    setFiles,
+    setPreviews,
+    setErrors,
+    handleInputChange,
+  };
+};
+
+// Validation utilities
+const validateFile = (file) => {
+  if (!file) return "ກະລຸນາເລືອກຮູບ";
+  if (!FILE_CONSTRAINTS.ALLOWED_TYPES.includes(file.type)) {
+    return "ກະລຸນາເລືອກຮູບພາບ (JPG, PNG) ເທົ່ານັ້ນ";
+  }
+  if (file.size > FILE_CONSTRAINTS.MAX_SIZE) {
+    return "ຂະໜາດໄຟລບໍ່ເກີນ 5MB";
+  }
+  return null;
+};
+
+const validateForm = (formData) => {
+  const errors = {};
+
+  if (!formData.fullName.trim()) {
+    errors.fullName = "ກະລຸນາລະບຸຊື່ ແລະ ນາມສະກຸນ";
+  }
+
+  if (!formData.idNumber.trim()) {
+    errors.idNumber = "ກະລຸນາລະບຸເລກທີ່ເອກະສານ";
+  } else {
+    const expectedLength =
+      formData.documentType === DOCUMENT_TYPES.ID_CARD ? 12 : 9;
+    if (formData.idNumber.length !== expectedLength) {
+      errors.idNumber = `ໝາຍເລກເອກະສານຕ້ອງມີ ${expectedLength} ຫຼັກ`;
+    }
+  }
+
+  if (!formData.birthDate) {
+    errors.birthDate = "ກະລຸນາເລືອກວັນເກີດ";
+  }
+
+  if (!formData.expiryDate) {
+    errors.expiryDate = "ກະລຸນາເລືອກວັນໝົດອາຍຸ";
+  }
+
+  if (!formData.address.trim()) {
+    errors.address = "ກະລຸນາລະບຸທີ່ຢູ່";
+  }
+
+  // Validate dates
+  if (formData.birthDate && formData.expiryDate) {
+    const birthDate = new Date(formData.birthDate);
+    const expiryDate = new Date(formData.expiryDate);
+    const today = new Date();
+
+    if (birthDate >= today) {
+      errors.birthDate = "ວັນເກິດຕ້ອງເປັນວັນທີ່ຜ່ານມາແລ້ວ";
+    }
+
+    if (expiryDate <= today) {
+      errors.expiryDate = "ເອກະສານໝົດອາຍຸແລ້ວ";
+    }
+  }
+
+  return errors;
+};
+
+// Status Alert Component
+const StatusAlert = ({ status }) => {
+  const alertConfig = useMemo(() => {
+    switch (status) {
+      case VERIFICATION_STATUS.ACCESS:
+        return {
+          status: "success",
+          title: "ຢືນຢັນຕົວຕົນສຳເລັດ",
+          description: "ບັນຊີຂອງທ່ານໄດ້ຮັບການຢືນຢັນແລ້ວ",
+        };
+      case VERIFICATION_STATUS.PENDING:
+        return {
+          status: "warning",
+          title: "ກຳລັງກວດສອບເອກະສານ",
+          description:
+            "ພວກເຮົາໄດ້ຮັບເອກະສານຂອງທ່ານແລ້ວ ກຳລັງກວດສອບແລະຈະແຈ້ງຜົນພາຍໃນ 1-3 ວັນທຳການ",
+        };
+      case VERIFICATION_STATUS.REJECTED:
+        return {
+          status: "error",
+          title: "ການຢືນຢັນບໍ່ສຳເລັດ",
+          description:
+            "ເອກະສານທີ່ສົ່ງມາບໍ່ຖືກຕ້ອງຫຼືບໍ່ຊັດເຈນ ກະລຸນາອັບໂຫລດເອກະສານໃໝ່",
+        };
+      default:
+        return {
+          status: "warning",
+          title: "ກະລຸນາຢືນຢັນຕົວຕົນ",
+          description: "ກະລຸນາອັບໂຫລດ ແລະ ລະບຸຂໍ້ມູນໃຫ້ຄົບຖ້ວນ",
+        };
+    }
+  }, [status]);
+
+  return (
+    <Alert status={alertConfig.status} borderRadius="md">
+      <AlertIcon />
+      <Box>
+        <AlertTitle>{alertConfig.title}</AlertTitle>
+        <AlertDescription>{alertConfig.description}</AlertDescription>
+      </Box>
+    </Alert>
+  );
+};
+
+// Image Upload Component
+const ImageUpload = ({ id, label, preview, onUpload, error }) => {
+  return (
+    <FormControl isInvalid={!!error}>
+      <FormLabel>{label}</FormLabel>
+      <VStack spacing={4} align="stretch">
+        {preview && (
+          <Box textAlign="center">
+            <Image
+              src={preview}
+              alt={label}
+              maxH="200px"
+              borderRadius="md"
+              border="2px solid"
+              borderColor="blue.200"
+              mx="auto"
+            />
+          </Box>
+        )}
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={onUpload}
+          style={{ display: "none" }}
+          id={id}
+        />
+        <Button
+          as="label"
+          htmlFor={id}
+          leftIcon={<Icon />}
+          colorScheme="blue"
+          variant="outline"
+          cursor="pointer"
+          size="lg"
+        >
+          {preview ? "ປ່ຽນຮູບ" : "ອັບໂຫລດ"}
+        </Button>
+        {error && (
+          <Text color="red.500" fontSize="sm">
+            {error}
+          </Text>
+        )}
+      </VStack>
+    </FormControl>
+  );
+};
+
+// Main Component
+const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
+  const dispatch = useDispatch();
+  const toast = useToast();
+  const { successMessage, errorMessage } = useSelector((state) => state?.auth);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const textColor = useColorModeValue("gray.600", "gray.300");
+
+  const {
+    formData,
+    files,
+    previews,
+    errors,
+    setFiles,
+    setPreviews,
+    setErrors,
+    handleInputChange,
+  } = useIdentityForm(sellerInfo_data);
+
+  const verificationStatus =
+    sellerInfo_data?.verificationStatus || VERIFICATION_STATUS.DEFAULT;
+  const isFormDisabled = verificationStatus === VERIFICATION_STATUS.ACCESS;
+
+  // Initialize data
+  useEffect(() => {
+    dispatch(get_user());
+    dispatch(getVerifyUser());
+  }, [dispatch]);
+
   // Handle toast messages
   useEffect(() => {
     if (errorMessage) {
       toast({
-        title: "เกิดข้อผิดพลาด",
+        title: "ເກິດຂໍ້ຜິດພາດ",
         description: errorMessage,
         status: "error",
         duration: 5000,
@@ -124,7 +327,7 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
 
     if (successMessage) {
       toast({
-        title: "สำเร็จ",
+        title: "ສຳເລັດ",
         description: successMessage,
         status: "success",
         duration: 5000,
@@ -134,77 +337,15 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
     }
   }, [errorMessage, successMessage, dispatch, toast]);
 
-  // File validation
-  const validateFile = (file) => {
-    if (!file) {
-      return "กรุณาเลือกไฟล์";
-    }
-
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return "กรุณาเลือกไฟล์ภาพ (JPG, PNG) เท่านั้น";
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      return "ขนาดไฟล์ต้องไม่เกิน 5MB";
-    }
-
-    return null;
-  };
-
-  // Form validation
-  const validateForm = () => {
-    const errors = {};
-
-    if (!verificationData.fullName.trim()) {
-      errors.fullName = "กรุณากรอกชื่อ-นามสกุล";
-    }
-
-    if (!verificationData.idNumber.trim()) {
-      errors.idNumber = "กรุณากรอกหมายเลขเอกสาร";
-    } else {
-      const expectedLength =
-        verificationData.documentType === DOCUMENT_TYPES.ID_CARD ? 13 : 9;
-      if (verificationData.idNumber.length !== expectedLength) {
-        errors.idNumber = `หมายเลขเอกสารต้องมี ${expectedLength} หลัก`;
-      }
-    }
-
-    if (!verificationData.birthDate) {
-      errors.birthDate = "กรุณาเลือกวันเกิด";
-    }
-
-    if (!verificationData.expiryDate) {
-      errors.expiryDate = "กรุณาเลือกวันหมดอายุ";
-    }
-
-    if (!verificationData.address.trim()) {
-      errors.address = "กรุณากรอกที่อยู่";
-    }
-
-    // Validate dates
-    if (verificationData.birthDate && verificationData.expiryDate) {
-      const birthDate = new Date(verificationData.birthDate);
-      const expiryDate = new Date(verificationData.expiryDate);
-      const today = new Date();
-
-      if (birthDate >= today) {
-        errors.birthDate = "วันเกิดต้องเป็นวันที่ผ่านมาแล้ว";
-      }
-
-      if (expiryDate <= today) {
-        errors.expiryDate = "เอกสารหมดอายุแล้ว";
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // Handle image upload with validation
+  // Handle image upload
   const handleImageUpload = useCallback(
-    (file, type) => {
+    (type) => (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
       const error = validateFile(file);
       if (error) {
+        setErrors((prev) => ({ ...prev, [type]: error }));
         toast({
           title: "ไฟล์ไม่ถูกต้อง",
           description: error,
@@ -215,48 +356,32 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
         return;
       }
 
+      // Clear error
+      setErrors((prev) => ({ ...prev, [type]: null }));
+
+      // Set file
+      setFiles((prev) => ({ ...prev, [type]: file }));
+
+      // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
-        setPreview((prev) => ({
-          ...prev,
-          [type]: e.target.result,
-        }));
+        setPreviews((prev) => ({ ...prev, [type]: e.target.result }));
       };
       reader.readAsDataURL(file);
-
-      if (type === "idCardImage") {
-        setIdCardImage(file);
-      } else if (type === "selfieImage") {
-        setSelfieImage(file);
-      }
     },
-    [toast]
+    [setErrors, setFiles, setPreviews, toast]
   );
 
-  // Handle form input changes
-  const handleInputChange = (field, value) => {
-    setVerificationData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [field]: undefined,
-      }));
-    }
-  };
-
   // Handle form submission
-  const handleVerificationSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
+    const formErrors = validateForm(formData);
+    if (Object.keys(formErrors).length > 0) {
+      setErrors(formErrors);
       toast({
-        title: "ข้อมูลไม่ครบถ้วน",
-        description: "กรุณาตรวจสอบข้อมูลและแก้ไขข้อผิดพลาด",
+        title: "ຂໍ້ມູນບໍ່ຄົບຖ້ວນ",
+        description: "ກະລຸນາກວດສອບຂໍ້ມູນໃຫ້ຄົບຖ້ວນ",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -264,24 +389,23 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
       return;
     }
 
-    // Check if images are uploaded (only for new submissions)
+    // Check required images for new submissions
     if (verificationStatus !== VERIFICATION_STATUS.ACCESS) {
-      if (!idCardImage && !preview.idCardImage) {
+      if (!files.idCardImage && !previews.idCardImage) {
         toast({
-          title: "กรุณาอัปโหลดเอกสาร",
-          description: "กรุณาอัปโหลดรูปเอกสารประจำตัว",
+          title: "ກະລຸນາອັບໂຫລດເອກະສານ",
+          description: "ກະລຸນາອັບໂຫລດເອກະສານ",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
-
         return;
       }
 
-      if (!selfieImage && !preview.selfieImage) {
+      if (!files.selfieImage && !previews.selfieImage) {
         toast({
-          title: "กรุณาอัปโหลดรูปเซลฟี",
-          description: "กรุณาอัปโหลดรูปเซลฟีคู่กับเอกสาร",
+          title: "ກະລຸນາເຊວຟີ",
+          description: "ກະລຸນາອັບໂຫລດເຊວຟິກັບເອກະສານ",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -294,52 +418,47 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
       setIsLoading(true);
 
       // Prepare form data
-      const raw = verificationData;
-
-      const datadoc = {
-        fullName: String(raw?.fullName || "").trim(),
-        idNumber: String(raw?.idNumber || "").trim(),
-        documentType: ["id_card", "passport"].includes(raw?.documentType)
-          ? raw.documentType
+      const processedData = {
+        fullName: String(formData.fullName || "").trim(),
+        idNumber: String(formData.idNumber || "").trim(),
+        documentType: ["id_card", "passport"].includes(formData.documentType)
+          ? formData.documentType
           : "id_card",
-        birthDate: raw?.birthDate ? new Date(raw.birthDate) : null,
-        expiryDate: raw?.expiryDate ? new Date(raw.expiryDate) : null,
-        address: String(raw?.address || "").trim(),
+        birthDate: formData.birthDate ? new Date(formData.birthDate) : null,
+        expiryDate: formData.expiryDate ? new Date(formData.expiryDate) : null,
+        address: String(formData.address || "").trim(),
       };
 
-      const formData = new FormData();
-      formData.append("verificationData", JSON.stringify(datadoc));
-      formData.append("verificationStatus", VERIFICATION_STATUS.PENDING);
-      if (idCardImage) {
-        formData.append("idCardImage", idCardImage);
-      }
-      // if(image instanceof File){
+      const submitData = new FormData();
+      submitData.append("verificationData", JSON.stringify(processedData));
+      submitData.append("verificationStatus", VERIFICATION_STATUS.PENDING);
 
-      // }
-      if (selfieImage) {
-        formData.append("selfieImage", selfieImage);
+      if (files.idCardImage) {
+        submitData.append("idCardImage", files.idCardImage);
       }
-      // Dispatch appropriate action
-      if (
-        sellerInfo_data?.verificationStatus === VERIFICATION_STATUS.REJECTED
-      ) {
-        for (let pair of formData.entries()) {
-          console.log(pair[0] + ":", pair[1]);
-        }
-        dispatch(
-          updateSellerReject({ formData: formData, id: sellerInfo_data?._id })
+      if (files.selfieImage) {
+        submitData.append("selfieImage", files.selfieImage);
+      }
+
+      // Submit based on current status
+      if (verificationStatus === VERIFICATION_STATUS.REJECTED) {
+        await dispatch(
+          updateSellerReject({
+            formData: submitData,
+            id: sellerInfo_data?._id,
+          })
         );
       } else {
-        dispatch(verifyUserCreate(formData));
+        await dispatch(verifyUserCreate(submitData));
       }
 
-      // Call callback function
+      await dispatch(getVerifyUser());
       handleSubmitDocument();
     } catch (error) {
       console.error("Error submitting verification:", error);
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถส่งข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+        title: "ເກີດຂໍ້ຜິດພາດ",
+        description: "ກະລຸນາລອງໃໝ່ອີກຄັ້ງ",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -349,58 +468,10 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
     }
   };
 
-  // Render verification status alert
-  const renderStatusAlert = () => {
-    switch (verificationStatus) {
-      case VERIFICATION_STATUS.ACCESS:
-        return (
-          <Alert status="success" borderRadius="md">
-            <AlertIcon />
-            <Box>
-              <AlertTitle>ຢືນຢັນຕົວຕົນສຳເລັດ</AlertTitle>
-              <AlertDescription>
-                ບັນຊີຂອງທ່ານໄດ້ຮັບການຢືນຢັນແລ້ວ
-              </AlertDescription>
-            </Box>
-          </Alert>
-        );
-      case VERIFICATION_STATUS.PENDING:
-        return (
-          <Alert status="warning" borderRadius="md">
-            <AlertIcon />
-            <Box>
-              <AlertTitle>ກຳລັງກວດສອບເອກະສານ</AlertTitle>
-              <AlertDescription>
-                ພວກເຮົາໄດ້ຮັບເອກະສານຂອງທ່ານແລ້ວ ກຳລັງກວດສອບແລະຈະແຈ້ງຜົນພາຍໃນ 1-3
-                ວັນທຳການ
-              </AlertDescription>
-            </Box>
-          </Alert>
-        );
-      case VERIFICATION_STATUS.REJECTED:
-        return (
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
-            <Box>
-              <AlertTitle>การยืนยันไม่สำเร็จ</AlertTitle>
-              <AlertDescription>
-                ເອກະສານທີ່ສົ່ງມາບໍ່ຖືກຕ້ອງຫຼືບໍ່ຊັດເຈນ ກະລຸນາອັບໂຫລດເອກະສານໃໝ່
-              </AlertDescription>
-            </Box>
-          </Alert>
-        );
-      default:
-        return null;
-    }
-  };
-
-  // Check if form is disabled
-  const isFormDisabled = verificationStatus === VERIFICATION_STATUS.ACCESS;
-
   return (
     <Card>
       <CardBody>
-        <form onSubmit={handleVerificationSubmit}>
+        <form onSubmit={handleSubmit}>
           <VStack spacing={6} align="stretch">
             {/* Header */}
             <Box textAlign="center">
@@ -417,29 +488,27 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
               </Heading>
               <Text color={textColor} maxW="500px" mx="auto">
                 ກະລຸນາອັບໂຫລດເອກະສານເພື່ອໃຫ້ຮ້ານຄ້າຂອງທ່ານໄດ້ຮັບການຢືນຢັນຈາກລະບົບ
-                ການຢືນຢັ້ນຕົວຕົນຈະຊ່ວຍເພີ່ມຄວາມນ່າເຊື່ອຖື ແລະ
-                ສ້າງຄວາມໝັ້ນໃຈໃຫ້ກັບລູກຄ້າ
               </Text>
             </Box>
 
             {/* Status Alert */}
-            {renderStatusAlert()}
+            <StatusAlert status={verificationStatus} />
 
             {/* Basic Information */}
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-              <FormControl isInvalid={!!formErrors.fullName}>
-                <FormLabel>ຊື່ ແລະ ນາມສະກຸນ (ຕາມເອກະສານທາງການ)</FormLabel>
+              <FormControl isInvalid={!!errors.fullName}>
+                <FormLabel>ຊື່ ແລະ ນາມສະກຸນ</FormLabel>
                 <Input
-                  value={verificationData.fullName}
+                  value={formData.fullName}
                   onChange={(e) =>
                     handleInputChange("fullName", e.target.value)
                   }
                   placeholder="ລະບຸຊື່-ນາມສະກຸນໃຫ້ກົງກັບບັດ"
                   isDisabled={isFormDisabled}
                 />
-                {formErrors.fullName && (
+                {errors.fullName && (
                   <Text color="red.500" fontSize="sm" mt={1}>
-                    {formErrors.fullName}
+                    {errors.fullName}
                   </Text>
                 )}
               </FormControl>
@@ -447,95 +516,90 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
               <FormControl>
                 <FormLabel>ປະເພດເອກະສານ</FormLabel>
                 <Select
-                  value={verificationData.documentType}
+                  value={formData.documentType}
                   onChange={(e) =>
                     handleInputChange("documentType", e.target.value)
                   }
                   isDisabled={isFormDisabled}
                 >
                   <option value={DOCUMENT_TYPES.ID_CARD}>ບັດປະຊາຊົນ</option>
-                  <option value={DOCUMENT_TYPES.PASSPORT}>
-                    ໜັງສືເດີນທາງ (Passport)
-                  </option>
+                  <option value={DOCUMENT_TYPES.PASSPORT}>ໜັງສືເດີນທາງ</option>
                 </Select>
               </FormControl>
             </SimpleGrid>
 
-            <FormControl isInvalid={!!formErrors.idNumber}>
+            <FormControl isInvalid={!!errors.idNumber}>
               <FormLabel>
-                {verificationData.documentType === DOCUMENT_TYPES.ID_CARD
+                {formData.documentType === DOCUMENT_TYPES.ID_CARD
                   ? "ເລກທີ່ບັດປະຊາຊົນ"
                   : "ເລກທີ່ໜັງສືເດີນທາງ"}
               </FormLabel>
               <Input
-                value={verificationData.idNumber}
+                value={formData.idNumber}
                 onChange={(e) => handleInputChange("idNumber", e.target.value)}
                 placeholder={
-                  verificationData.documentType === DOCUMENT_TYPES.ID_CARD
+                  formData.documentType === DOCUMENT_TYPES.ID_CARD
                     ? "1234567890123"
                     : "A1234567"
                 }
                 maxLength={
-                  verificationData.documentType === DOCUMENT_TYPES.ID_CARD
-                    ? 13
-                    : 9
+                  formData.documentType === DOCUMENT_TYPES.ID_CARD ? 12 : 9
                 }
                 isDisabled={isFormDisabled}
               />
-              {formErrors.idNumber && (
+              {errors.idNumber && (
                 <Text color="red.500" fontSize="sm" mt={1}>
-                  {formErrors.idNumber}
+                  {errors.idNumber}
                 </Text>
               )}
             </FormControl>
 
             <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-              <FormControl isInvalid={!!formErrors.birthDate}>
-                <FormLabel>ວັນ/ເດືອນ/ປີເກີດ (ຕາມບັດ)</FormLabel>
+              <FormControl isInvalid={!!errors.birthDate}>
+                <FormLabel>ວັນເກີດ</FormLabel>
                 <Input
                   type="date"
-                  value={verificationData.birthDate}
+                  value={formData.birthDate}
                   onChange={(e) =>
                     handleInputChange("birthDate", e.target.value)
                   }
                   isDisabled={isFormDisabled}
                 />
-                {formErrors.birthDate && (
+                {errors.birthDate && (
                   <Text color="red.500" fontSize="sm" mt={1}>
-                    {formErrors.birthDate}
+                    {errors.birthDate}
                   </Text>
                 )}
               </FormControl>
 
-              <FormControl isInvalid={!!formErrors.expiryDate}>
-                <FormLabel>ວັນ/ເດືອນ/ປີ ໝົດອາຍຸບັດ (ຕາມບັດ)</FormLabel>
+              <FormControl isInvalid={!!errors.expiryDate}>
+                <FormLabel>ວັນໝົດອາຍຸ</FormLabel>
                 <Input
                   type="date"
-                  value={verificationData.expiryDate}
+                  value={formData.expiryDate}
                   onChange={(e) =>
                     handleInputChange("expiryDate", e.target.value)
                   }
                   isDisabled={isFormDisabled}
                 />
-                {formErrors.expiryDate && (
+                {errors.expiryDate && (
                   <Text color="red.500" fontSize="sm" mt={1}>
-                    {formErrors.expiryDate}
+                    {errors.expiryDate}
                   </Text>
                 )}
               </FormControl>
 
-              <FormControl isInvalid={!!formErrors.address}>
-                <FormLabel>ທີ່ຢູ່ (ຕາມບັດ)</FormLabel>
+              <FormControl isInvalid={!!errors.address}>
+                <FormLabel>ທີ່ຢູ່</FormLabel>
                 <Input
-                  type="text"
-                  value={verificationData.address}
+                  value={formData.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
                   placeholder="ບ້ານ......ເມືອງ.....ແຂວງ......"
                   isDisabled={isFormDisabled}
                 />
-                {formErrors.address && (
+                {errors.address && (
                   <Text color="red.500" fontSize="sm" mt={1}>
-                    {formErrors.address}
+                    {errors.address}
                   </Text>
                 )}
               </FormControl>
@@ -549,104 +613,27 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
                 ເອກະສານຢືນຢັນຕົວຕົນ
               </Heading>
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                {/* ID Card/Passport Upload */}
-                <FormControl>
-                  <FormLabel>
-                    ຮູບຖ່າຍ
-                    {verificationData.documentType === DOCUMENT_TYPES.ID_CARD
+                <ImageUpload
+                  id="id-card-upload"
+                  label={`ຮູບຖ່າຍ${
+                    formData.documentType === DOCUMENT_TYPES.ID_CARD
                       ? "ບັດປະຊາຊົນ"
-                      : "ໜັງສືເດີນທາງ"}
-                  </FormLabel>
-                  <VStack spacing={4} align="stretch">
-                    {preview?.idCardImage && (
-                      <Box textAlign="center">
-                        <Image
-                          src={preview.idCardImage}
-                          alt="ID Document"
-                          maxH="200px"
-                          borderRadius="md"
-                          border="2px solid"
-                          borderColor="blue.200"
-                          mx="auto"
-                        />
-                      </Box>
-                    )}
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(e.target.files[0], "idCardImage")
-                      }
-                      style={{ display: "none" }}
-                      id="id-card-upload"
-                      disabled={isFormDisabled}
-                    />
-                    <Button
-                      as="label"
-                      htmlFor="id-card-upload"
-                      leftIcon={<FaCloudUploadAlt />}
-                      colorScheme="blue"
-                      variant="outline"
-                      cursor="pointer"
-                      size="lg"
-                      isDisabled={isFormDisabled}
-                    >
-                      ອັບໂຫລດເອກະສານ
-                    </Button>
-                    <Text fontSize="sm" color={textColor} textAlign="center">
-                      ຖ່າຍຮູບໃຫ້ຊັດເຈນ ໃຫ້ເຫັນຄົບທັງ 4 ມຸມ
-                      <br />
-                      ຮອງຮັບໄຟລ໌ JPG, PNG ຂະໜາດບໍ່ເກີນ 5MB
-                    </Text>
-                  </VStack>
-                </FormControl>
+                      : "ໜັງສືເດີນທາງ"
+                  }`}
+                  preview={previews.idCardImage}
+                  onUpload={handleImageUpload("idCardImage")}
+                  error={errors.idCardImage}
+                  icon={FaCloudUploadAlt}
+                />
 
-                {/* Selfie with ID Upload */}
-                <FormControl>
-                  <FormLabel>ຮູບເຊວຟີຄູ່ກັບເອກະສານ</FormLabel>
-                  <VStack spacing={4} align="stretch">
-                    {preview?.selfieImage && (
-                      <Box textAlign="center">
-                        <Image
-                          src={preview.selfieImage}
-                          alt="Selfie with ID"
-                          maxH="200px"
-                          borderRadius="md"
-                          border="2px solid"
-                          borderColor="green.200"
-                          mx="auto"
-                        />
-                      </Box>
-                    )}
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(e.target.files[0], "selfieImage")
-                      }
-                      style={{ display: "none" }}
-                      id="selfie-upload"
-                      disabled={isFormDisabled}
-                    />
-                    <Button
-                      as="label"
-                      htmlFor="selfie-upload"
-                      leftIcon={<FaCamera />}
-                      colorScheme="green"
-                      variant="outline"
-                      cursor="pointer"
-                      size="lg"
-                      isDisabled={isFormDisabled}
-                    >
-                      ຖ່າຍຮູບເຊວຟີ
-                    </Button>
-                    <Text fontSize="sm" color={textColor} textAlign="center">
-                      ຖ່າຍຮູບຕົນເອງໂດຍຖືເອກະສານໃນມື
-                      <br />
-                      ໃຫ້ເຫັນໃບໜ້າແລະເອກະສານຢ່າງຊັດເຈນ
-                    </Text>
-                  </VStack>
-                </FormControl>
+                <ImageUpload
+                  id="selfie-upload"
+                  label="ຮູບເຊວຟີຄູ່ກັບເອກະສານ"
+                  preview={previews.selfieImage}
+                  onUpload={handleImageUpload("selfieImage")}
+                  error={errors.selfieImage}
+                  icon={FaCamera}
+                />
               </SimpleGrid>
             </Box>
 
@@ -662,8 +649,8 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
               </Text>
               <VStack align="start" spacing={1} fontSize="sm" color={textColor}>
                 <Text>• ຖ່າຍໃນສະຖານທີ່ທີ່ມີແສງສວ່າງພຽງພໍ</Text>
-                <Text>• ຂໍ້ຄວາມ ແລະ ຮູບໃນເອກະສານຕ້ອງແມ່ນມອງເຫັນຊັດເຈນ</Text>
-                <Text>• ບໍ່ຄວນມີເງາຫຼືແສງສະທ້ອນໃນຮູບ</Text>
+                <Text>• ຂໍ້ຄວາມ ແລະ ຮູບໃນເອກະສານຕ້ອງມອງເຫັນຊັດເຈນ</Text>
+                <Text>• ບໍ່ຄວນມີເງົາຫຼືແສງສະທ້ອນໃນຮູບ</Text>
                 <Text>• ຮູບເຊວຟີຕ້ອງເຫັນໃບໜ້າແລະເອກະສານຢ່າງຊັດເຈນ</Text>
               </VStack>
             </Box>
@@ -679,14 +666,14 @@ const IdentityForm = ({ handleSubmitDocument, sellerInfo_data }) => {
                 }
                 size="lg"
                 isLoading={isLoading}
-                loadingText="กำลังส่งข้อมูล..."
+                loadingText="ກຳລັງສົ່ງຂໍ້ມູນ..."
                 leftIcon={<FaShieldAlt />}
                 minW="250px"
                 isDisabled={isFormDisabled}
               >
                 {verificationStatus === VERIFICATION_STATUS.ACCESS
-                  ? "ยืนยันแล้ว"
-                  : "ส่งข้อมูลยืนยัน"}
+                  ? "ຍືນຢັນແລ້ວ"
+                  : "ສົ່ງຂໍ້ມູນຢືນຢັນ"}
               </Button>
             </Box>
           </VStack>

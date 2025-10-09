@@ -1,5 +1,5 @@
 // utils/AuthProvider.js
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, Navigate } from "react-router-dom";
 import { verifyToken } from "../hooks/reducer/auth_reducer";
@@ -35,7 +35,7 @@ const AuthProvider = ({ children }) => {
               size="xl"
             />
             <Text color="gray.600" fontSize="lg" fontWeight="medium">
-              Loading MyShop...
+              ກຳລັງໂຫລດຂໍ້ມູນ...
             </Text>
             <Text color="gray.400" fontSize="sm">
               Initializing app...

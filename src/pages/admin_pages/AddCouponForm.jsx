@@ -111,12 +111,9 @@ const AddCouponForm = () => {
     dispatch(get_coupon());
   }, [dispatch]);
 
-  const {
-    loader,
-    get_products,
-    get_seller,
-    get_coupons,
-  } = useSelector((state) => state.provider_reducer);
+  const { loader, get_products, get_seller, get_coupons } = useSelector(
+    (state) => state.provider_reducer
+  );
 
   const [stores, setStores] = useState();
   const [coupons, setCoupons] = useState();
@@ -159,7 +156,7 @@ const AddCouponForm = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const modalSize = useBreakpointValue({ base: "full", md: "6xl" });
   const cardSpacing = useBreakpointValue({ base: 4, md: 6 });
-  
+
   // Color mode values
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -179,26 +176,26 @@ const AddCouponForm = () => {
     const newErrors = {};
 
     if (!formData.coupon_code.trim()) {
-      newErrors.coupon_code = "กรุณากรอกรหัสคูปอง";
+      newErrors.coupon_code = "ກະລຸນາລະບຸລະຫັດຄູປອງ";
     }
 
     if (!formData.discount_value || formData.discount_value <= 0) {
-      newErrors.discount_value = "กรุณากรอกมูลค่าส่วนลดที่ถูกต้อง";
+      newErrors.discount_value = "ກະລຸນາລະບຸມູນຄ່າສ່ວນຫລຸດທີ່ຖືກຕ້ອງ";
     }
 
     if (
       formData.discount_type === "percentage" &&
       formData.discount_value > 100
     ) {
-      newErrors.discount_value = "เปอร์เซ็นต์ส่วนลดต้องไม่เกิน 100%";
+      newErrors.discount_value = "ເປີເຊັນສ່ວນຫລຸດບໍ່ຕ້ອງເກີນ 100%";
     }
 
     if (!formData.start_date) {
-      newErrors.start_date = "กรุณาเลือกวันที่เริ่มต้น";
+      newErrors.start_date = "ກະລຸນາເລືອກວັນທີ່ເລີ່ມຕົ້ນ";
     }
 
     if (!formData.end_date) {
-      newErrors.end_date = "กรุณาเลือกวันที่สิ้นสุด";
+      newErrors.end_date = "ກະລຸນາເລືອກວັນທີ່ສິ້ນສຸດ";
     }
 
     if (
@@ -206,21 +203,21 @@ const AddCouponForm = () => {
       formData.end_date &&
       formData.start_date >= formData.end_date
     ) {
-      newErrors.end_date = "วันที่สิ้นสุดต้องหลังจากวันที่เริ่มต้น";
+      newErrors.end_date = "ວັນທີ່ສິ້ນສຸດຕ້ອງຢູ່ຫລັງຈາກວັນທີ່ເລີ່ມຕົ້ນ";
     }
 
     if (
       formData.applicable_type === "specific_stores" &&
       selectedStores.length === 0
     ) {
-      newErrors.stores = "กรุณาเลือกร้านค้าอย่างน้อย 1 ร้าน";
+      newErrors.stores = "ກະລຸນາເລືອກຢ່າງໜ້ອຍ 1ຮ້ານຄ້າ";
     }
 
     if (
       formData.applicable_type === "specific_products" &&
       selectedProducts.length === 0
     ) {
-      newErrors.products = "กรุณาเลือกสินค้าอย่างน้อย 1 รายการ";
+      newErrors.products = " ກະລຸນາເລືອກຢ່າງໜ້ອຍ 1 ລາຍການ";
     }
 
     setErrors(newErrors);
@@ -303,14 +300,13 @@ const AddCouponForm = () => {
 
       if (editingCoupon) {
         dispatch(update_coupons(couponData)).then(() => dispatch(get_coupon()));
-        console.log("edit", couponData);
       } else {
         setCoupons((prev) => [...prev, couponData]);
         dispatch(add_coupon(couponData)).then(() => dispatch(get_coupon()));
-        console.log("add", couponData);
+
         toast({
-          title: "สำเร็จ",
-          description: "เพิ่มคูปองใหม่เรียบร้อยแล้ว",
+          title: "ສຳເລັດ",
+          description: "ເພີ່ມຄູປອງໃຫມ່ແລ້ວ",
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -393,8 +389,8 @@ const AddCouponForm = () => {
       prev.filter((coupon) => coupon.id !== couponToDelete.id)
     );
     toast({
-      title: "สำเร็จ",
-      description: "ลบคูปองเรียบร้อยแล้ว",
+      title: "ສຳເລັດ",
+      description: "ລົບຄູປອງສຳເລັດ",
       status: "success",
       duration: 3000,
       isClosable: true,
@@ -436,15 +432,15 @@ const AddCouponForm = () => {
   const getStatusText = (status) => {
     switch (status) {
       case "active":
-        return "ใช้งานได้";
+        return "ໃຊ້ງານໄດ້";
       case "inactive":
-        return "ไม่ใช้งาน";
+        return "ບໍ່ໃຊ້ງານ";
       case "expired":
-        return "หมดอายุ";
+        return "ໝົດອາຍຸ";
       case "expiring_soon":
-        return "กำลังหมดอายุ";
+        return "ກຳລັງໝົດອາຍຸ";
       case "pending":
-        return "รอเริ่มใช้งาน";
+        return "ລໍຖ້າເລີ່ມໃຊ້ງານ";
       default:
         return status;
     }
@@ -453,23 +449,23 @@ const AddCouponForm = () => {
   const getApplicableText = (coupon) => {
     switch (coupon.applicable_type) {
       case "all_system":
-        return "ทั้งระบบ";
+        return "ທັງລະບົບ";
       case "specific_stores": {
         const storeNames = coupon.applicable_stores
           .map((id) => stores?.find((s) => s._id === id)?.name)
           .filter(Boolean);
-        return storeNames.length > 0 ? storeNames.join(", ") : "ไม่ระบุร้าน";
+        return storeNames.length > 0 ? storeNames.join(", ") : "ບໍລະບຸຮ້ານ";
       }
       case "specific_products": {
         const productNames = coupon.applicable_products
           .map((id) => products?.find((p) => p._id === id)?.name)
           .filter(Boolean);
         return productNames.length > 0
-          ? `${productNames.length} สินค้า`
-          : "ไม่ระบุสินค้า";
+          ? `${productNames.length} ສິນຄ້າ`
+          : "ບໍ່ລະບຸສິນຄ້າ";
       }
       default:
-        return "ไม่ระบุ";
+        return "ບໍ່ລະບຸ";
     }
   };
 
@@ -509,9 +505,9 @@ const AddCouponForm = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("th-TH", {
+    return new Intl.NumberFormat("la-LA", {
       style: "currency",
-      currency: "THB",
+      currency: "LAK",
     }).format(amount || 0);
   };
 
@@ -528,7 +524,7 @@ const AddCouponForm = () => {
             <CardBody>
               <VStack spacing={4}>
                 <Spinner size="xl" color="blue.500" />
-                <Text>กำลังโหลดข้อมูล...</Text>
+                <Text>ກຳລັງໂຫລດຂໍ້ມູນ...</Text>
               </VStack>
             </CardBody>
           </Card>
@@ -542,40 +538,42 @@ const AddCouponForm = () => {
       <Container maxW="container.xl" py={cardSpacing}>
         <VStack spacing={cardSpacing} align="stretch">
           {/* Enhanced Header with Stats */}
-          <Card 
-            shadow="xl" 
-            bg={cardBg} 
-            borderWidth="1px" 
+          <Card
+            shadow="xl"
+            bg={cardBg}
+            borderWidth="1px"
             borderColor={borderColor}
             _hover={{ shadow: "2xl" }}
             transition="all 0.2s"
           >
             <CardHeader>
               <VStack spacing={4}>
-                <Flex 
-                  direction={{ base: "column", lg: "row" }} 
-                  justify="space-between" 
+                <Flex
+                  direction={{ base: "column", lg: "row" }}
+                  justify="space-between"
                   align={{ base: "stretch", lg: "center" }}
                   w="full"
                   gap={4}
                 >
                   <VStack align={{ base: "center", lg: "start" }} spacing={2}>
-                    <Heading 
-                      size={{ base: "lg", md: "xl" }} 
+                    <Heading
+                      size={{ base: "lg", md: "xl" }}
                       color="blue.600"
                       textAlign={{ base: "center", lg: "left" }}
+                      fontFamily={"Noto Sans Lao, serif"}
                     >
-                      🎫 จัดการคูปองส่วนลด
+                      🎫 ຈັດການຄູ່ປອງສ່ວນຫຼຸດ
                     </Heading>
-                    <Text 
-                      color="gray.600" 
+                    <Text
+                      color="gray.600"
                       fontSize={{ base: "sm", md: "md" }}
                       textAlign={{ base: "center", lg: "left" }}
                     >
-                      จัดการคูปองสำหรับทั้งระบบ ร้านค้าเฉพาะ หรือสินค้าเฉพาะ
+                      ຈັດການຄູ່ປອງສ່ວນຫຼຸດສຳຫຼັບທັ້ງລະບົບ ຮ້ານຄ້າສະເພາະ ຫຼື
+                      ສິນຄ້າສະເພາະ
                     </Text>
                   </VStack>
-                  
+
                   <Button
                     leftIcon={<AddIcon />}
                     colorScheme="blue"
@@ -585,61 +583,95 @@ const AddCouponForm = () => {
                       onOpen();
                     }}
                     shadow="lg"
-                    _hover={{ 
+                    _hover={{
                       transform: "translateY(-2px)",
-                      shadow: "xl"
+                      shadow: "xl",
                     }}
                     transition="all 0.2s"
                     w={{ base: "full", lg: "auto" }}
                   >
-                    เพิ่มคูปองใหม่
+                    ເພີ່ມຄູ່ປອງໃໝ່
                   </Button>
                 </Flex>
 
                 {/* Stats Cards */}
-                <SimpleGrid 
-                  columns={{ base: 2, md: 4 }} 
-                  spacing={4} 
+                <SimpleGrid
+                  columns={{ base: 2, md: 4 }}
+                  spacing={4}
                   w="full"
                   pt={4}
                 >
-                  <Card size="sm" bg="green.50" borderLeft="4px" borderLeftColor="green.400">
+                  <Card
+                    size="sm"
+                    bg="green.50"
+                    borderLeft="4px"
+                    borderLeftColor="green.400"
+                  >
                     <CardBody>
                       <Stat>
-                        <StatLabel fontSize="xs" color="green.600">ใช้งานได้</StatLabel>
+                        <StatLabel fontSize="xs" color="green.600">
+                          ໃຊ້ງານໄດ້
+                        </StatLabel>
                         <StatNumber fontSize="lg" color="green.700">
-                          {coupons?.filter(c => getCouponStatus(c) === 'active').length || 0}
+                          {coupons?.filter(
+                            (c) => getCouponStatus(c) === "active"
+                          ).length || 0}
                         </StatNumber>
                       </Stat>
                     </CardBody>
                   </Card>
-                  
-                  <Card size="sm" bg="orange.50" borderLeft="4px" borderLeftColor="orange.400">
+
+                  <Card
+                    size="sm"
+                    bg="orange.50"
+                    borderLeft="4px"
+                    borderLeftColor="orange.400"
+                  >
                     <CardBody>
                       <Stat>
-                        <StatLabel fontSize="xs" color="orange.600">กำลังหมดอายุ</StatLabel>
+                        <StatLabel fontSize="xs" color="orange.600">
+                          ກຳລັງໝົດອາຍຸ
+                        </StatLabel>
                         <StatNumber fontSize="lg" color="orange.700">
-                          {coupons?.filter(c => getCouponStatus(c) === 'expiring_soon').length || 0}
+                          {coupons?.filter(
+                            (c) => getCouponStatus(c) === "expiring_soon"
+                          ).length || 0}
                         </StatNumber>
                       </Stat>
                     </CardBody>
                   </Card>
-                  
-                  <Card size="sm" bg="red.50" borderLeft="4px" borderLeftColor="red.400">
+
+                  <Card
+                    size="sm"
+                    bg="red.50"
+                    borderLeft="4px"
+                    borderLeftColor="red.400"
+                  >
                     <CardBody>
                       <Stat>
-                        <StatLabel fontSize="xs" color="red.600">หมดอายุ</StatLabel>
+                        <StatLabel fontSize="xs" color="red.600">
+                          ໝົດອາຍຸ
+                        </StatLabel>
                         <StatNumber fontSize="lg" color="red.700">
-                          {coupons?.filter(c => getCouponStatus(c) === 'expired').length || 0}
+                          {coupons?.filter(
+                            (c) => getCouponStatus(c) === "expired"
+                          ).length || 0}
                         </StatNumber>
                       </Stat>
                     </CardBody>
                   </Card>
-                  
-                  <Card size="sm" bg="blue.50" borderLeft="4px" borderLeftColor="blue.400">
+
+                  <Card
+                    size="sm"
+                    bg="blue.50"
+                    borderLeft="4px"
+                    borderLeftColor="blue.400"
+                  >
                     <CardBody>
                       <Stat>
-                        <StatLabel fontSize="xs" color="blue.600">ทั้งหมด</StatLabel>
+                        <StatLabel fontSize="xs" color="blue.600">
+                          ທັ້ງໝົດ
+                        </StatLabel>
                         <StatNumber fontSize="lg" color="blue.700">
                           {coupons?.length || 0}
                         </StatNumber>
@@ -652,7 +684,12 @@ const AddCouponForm = () => {
           </Card>
 
           {/* Enhanced Search and Filter */}
-          <Card shadow="lg" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
+          <Card
+            shadow="lg"
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+          >
             <CardBody>
               <VStack spacing={4}>
                 {/* Search Bar */}
@@ -661,7 +698,7 @@ const AddCouponForm = () => {
                     <SearchIcon color="gray.400" />
                   </InputLeftElement>
                   <Input
-                    placeholder="🔍 ค้นหาด้วยรหัสคูปองหรือคำอธิบาย..."
+                    placeholder="🔍 ຄົ້ນຫາດ້ວຍລະຫັດຄູ່ປອງຫຼືຄຳອະທິບາຍ..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     bg="white"
@@ -669,7 +706,7 @@ const AddCouponForm = () => {
                     fontSize={{ base: "sm", md: "md" }}
                     _focus={{
                       borderColor: "blue.400",
-                      shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)"
+                      shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)",
                     }}
                   />
                 </InputGroup>
@@ -679,23 +716,27 @@ const AddCouponForm = () => {
                   <Button
                     variant="outline"
                     onClick={() => setShowFilters(!showFilters)}
-                    rightIcon={showFilters ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                    rightIcon={
+                      showFilters ? <ChevronUpIcon /> : <ChevronDownIcon />
+                    }
                     w="full"
                     justifyContent="space-between"
                   >
-                    ตัวกรอง
+                    ຕົວກຣອງ
                   </Button>
                 )}
 
                 {/* Filters */}
                 <Collapse in={!isMobile || showFilters}>
-                  <Grid 
-                    templateColumns={{ base: "1fr", md: "1fr 1fr" }} 
+                  <Grid
+                    templateColumns={{ base: "1fr", md: "1fr 1fr" }}
                     gap={4}
                     w="full"
                   >
                     <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="medium">สถานะ</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        ສະຖານະ
+                      </FormLabel>
                       <Select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
@@ -703,17 +744,19 @@ const AddCouponForm = () => {
                         borderRadius="lg"
                         fontSize={{ base: "sm", md: "md" }}
                       >
-                        <option value="all">📊 สถานะทั้งหมด</option>
-                        <option value="active">✅ ใช้งานได้</option>
-                        <option value="expiring_soon">⏰ กำลังหมดอายุ</option>
-                        <option value="expired">❌ หมดอายุ</option>
-                        <option value="inactive">⏸️ ไม่ใช้งาน</option>
-                        <option value="pending">⏳ รอเริ่มใช้งาน</option>
+                        <option value="all">📊 ສະຖານະທັງໝົດ</option>
+                        <option value="active">✅ ໃຊ້ງານໄດ້</option>
+                        <option value="expiring_soon">⏰ ກຳລັງໝົດອາຍຸ</option>
+                        <option value="expired">❌ ໝົດອາຍຸ</option>
+                        <option value="inactive">⏸️ ບໍ່ໃຊ້ງານ</option>
+                        <option value="pending">⏳ ລໍເລີ່ມໃຊ້ງານ</option>
                       </Select>
                     </FormControl>
-                    
+
                     <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="medium">ร้านค้า</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        ຮ້ານຄ້າ
+                      </FormLabel>
                       <Select
                         value={storeFilter}
                         onChange={(e) => setStoreFilter(e.target.value)}
@@ -721,7 +764,7 @@ const AddCouponForm = () => {
                         borderRadius="lg"
                         fontSize={{ base: "sm", md: "md" }}
                       >
-                        <option value="all">🏪 ร้านค้าทั้งหมด</option>
+                        <option value="all">🏪 ຮ້ານຄ້າທັງໝົດ</option>
                         {stores?.map((store) => (
                           <option key={store._id} value={store._id}>
                             {store.store_name}
@@ -736,7 +779,12 @@ const AddCouponForm = () => {
           </Card>
 
           {/* Enhanced Coupons Display */}
-          <Card shadow="xl" bg={cardBg} borderWidth="1px" borderColor={borderColor}>
+          <Card
+            shadow="xl"
+            bg={cardBg}
+            borderWidth="1px"
+            borderColor={borderColor}
+          >
             <CardBody p={0}>
               {/* Desktop Table View */}
               <Box display={{ base: "none", lg: "block" }}>
@@ -744,30 +792,87 @@ const AddCouponForm = () => {
                   <Table variant="simple" size="md">
                     <Thead bg="gray.50">
                       <Tr>
-                        <Th py={4} fontSize="sm" fontWeight="bold">รหัสคูปอง</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">ส่วนลด</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">วันที่ใช้งาน</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">การใช้งาน</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">สถานะ</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">ขอบเขต</Th>
-                        <Th py={4} fontSize="sm" fontWeight="bold">จัดการ</Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ລະຫັດຄູ່ປອງ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ສ່ວນຫຼຸດ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ວັນທີ່ໃຊ້ງານ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ການໃຊ້ງານ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ສະຖານະ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ຂອບເຂດ
+                        </Th>
+                        <Th
+                          fontFamily={"Noto Sans Lao, serif"}
+                          py={4}
+                          fontSize="sm"
+                          fontWeight="bold"
+                        >
+                          ຈັດການ
+                        </Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {filteredCoupons?.map((coupon, index) => {
                         const currentStatus = getCouponStatus(coupon);
                         return (
-                          <Tr 
+                          <Tr
                             key={index}
                             _hover={{ bg: "gray.50" }}
                             transition="all 0.2s"
                           >
                             <Td py={4}>
                               <VStack align="start" spacing={1}>
-                                <Text fontWeight="bold" fontSize="md" color="blue.600">
+                                <Text
+                                  fontWeight="bold"
+                                  fontSize="md"
+                                  color="blue.600"
+                                >
                                   {coupon.coupon_code}
                                 </Text>
-                                <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                                <Text
+                                  fontSize="sm"
+                                  color="gray.600"
+                                  noOfLines={2}
+                                >
                                   {coupon.description}
                                 </Text>
                               </VStack>
@@ -781,12 +886,14 @@ const AddCouponForm = () => {
                                 </Text>
                                 {coupon.min_order_amount > 0 && (
                                   <Text fontSize="xs" color="gray.600">
-                                    ขั้นต่ำ {formatCurrency(coupon.min_order_amount)}
+                                    ຂັ້ນຕໍ່າ{" "}
+                                    {formatCurrency(coupon.min_order_amount)}
                                   </Text>
                                 )}
                                 {coupon.max_discount_amount > 0 && (
                                   <Text fontSize="xs" color="gray.600">
-                                    สูงสุด {formatCurrency(coupon.max_discount_amount)}
+                                    ສູງສຸດ{" "}
+                                    {formatCurrency(coupon.max_discount_amount)}
                                   </Text>
                                 )}
                               </VStack>
@@ -804,12 +911,17 @@ const AddCouponForm = () => {
                             <Td py={4}>
                               <VStack align="start" spacing={1}>
                                 <Text fontWeight="semibold">
-                                  {coupon.used_count} / {coupon.usage_limit || "ไม่จำกัด"}
+                                  {coupon.used_count} /{" "}
+                                  {coupon.usage_limit || "ไม่จำกัด"}
                                 </Text>
                                 {coupon.usage_limit > 0 && (
                                   <Box w="60px">
                                     <Progress
-                                      value={(coupon.used_count / coupon.usage_limit) * 100}
+                                      value={
+                                        (coupon.used_count /
+                                          coupon.usage_limit) *
+                                        100
+                                      }
                                       size="sm"
                                       colorScheme="blue"
                                       borderRadius="md"
@@ -837,7 +949,8 @@ const AddCouponForm = () => {
                                   colorScheme={
                                     coupon.applicable_type === "all_system"
                                       ? "purple"
-                                      : coupon.applicable_type === "specific_stores"
+                                      : coupon.applicable_type ===
+                                        "specific_stores"
                                       ? "blue"
                                       : "green"
                                   }
@@ -848,12 +961,17 @@ const AddCouponForm = () => {
                                   fontSize="xs"
                                 >
                                   {coupon.applicable_type === "all_system"
-                                    ? "🌐 ทั้งระบบ"
-                                    : coupon.applicable_type === "specific_stores"
-                                    ? "🏪 ร้านเฉพาะ"
-                                    : "📦 สินค้าเฉพาะ"}
+                                    ? "🌐 ທັ້ງລະບົບ"
+                                    : coupon.applicable_type ===
+                                      "specific_stores"
+                                    ? "🏪 ຮ້ານສະເພາະ"
+                                    : "📦 ສິນຄ້າສະເພາະ"}
                                 </Badge>
-                                <Text fontSize="xs" color="gray.600" noOfLines={1}>
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.600"
+                                  noOfLines={1}
+                                >
                                   {getApplicableText(coupon)}
                                 </Text>
                               </VStack>
@@ -866,9 +984,9 @@ const AddCouponForm = () => {
                                   colorScheme="blue"
                                   variant="ghost"
                                   onClick={() => handleEdit(coupon)}
-                                  _hover={{ 
+                                  _hover={{
                                     bg: "blue.100",
-                                    transform: "scale(1.05)"
+                                    transform: "scale(1.05)",
                                   }}
                                   transition="all 0.2s"
                                   borderRadius="lg"
@@ -879,9 +997,9 @@ const AddCouponForm = () => {
                                   colorScheme="red"
                                   variant="ghost"
                                   onClick={() => handleDelete(coupon)}
-                                  _hover={{ 
+                                  _hover={{
                                     bg: "red.100",
-                                    transform: "scale(1.05)"
+                                    transform: "scale(1.05)",
                                   }}
                                   transition="all 0.2s"
                                   borderRadius="lg"
@@ -902,9 +1020,9 @@ const AddCouponForm = () => {
                   {filteredCoupons?.map((coupon) => {
                     const currentStatus = getCouponStatus(coupon);
                     return (
-                      <Card 
-                        key={coupon._id} 
-                        w="full" 
+                      <Card
+                        key={coupon._id}
+                        w="full"
                         shadow="md"
                         borderWidth="1px"
                         borderColor={borderColor}
@@ -916,10 +1034,18 @@ const AddCouponForm = () => {
                             {/* Header */}
                             <Flex justify="space-between" align="start">
                               <VStack align="start" spacing={1} flex="1">
-                                <Text fontWeight="bold" fontSize="lg" color="blue.600">
+                                <Text
+                                  fontWeight="bold"
+                                  fontSize="lg"
+                                  color="blue.600"
+                                >
                                   {coupon.coupon_code}
                                 </Text>
-                                <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                                <Text
+                                  fontSize="sm"
+                                  color="gray.600"
+                                  noOfLines={2}
+                                >
                                   {coupon.description}
                                 </Text>
                               </VStack>
@@ -941,32 +1067,50 @@ const AddCouponForm = () => {
                             {/* Content */}
                             <SimpleGrid columns={2} spacing={3}>
                               <VStack align="start" spacing={1}>
-                                <Text fontSize="xs" color="gray.500" fontWeight="medium">
-                                  ส่วนลด
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  fontWeight="medium"
+                                >
+                                  ສ່ວນຫຼຸດ
                                 </Text>
-                                <Text fontWeight="bold" fontSize="lg" color="green.600">
+                                <Text
+                                  fontWeight="bold"
+                                  fontSize="lg"
+                                  color="green.600"
+                                >
                                   {coupon.discount_type === "percentage"
                                     ? `${coupon.discount_value}%`
                                     : formatCurrency(coupon.discount_value)}
                                 </Text>
                                 {coupon.min_order_amount > 0 && (
                                   <Text fontSize="xs" color="gray.600">
-                                    ขั้นต่ำ {formatCurrency(coupon.min_order_amount)}
+                                    ຂັ້ນຕໍ່າ{" "}
+                                    {formatCurrency(coupon.min_order_amount)}
                                   </Text>
                                 )}
                               </VStack>
 
                               <VStack align="start" spacing={1}>
-                                <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  fontWeight="medium"
+                                >
                                   การใช้งาน
                                 </Text>
                                 <Text fontWeight="semibold">
-                                  {coupon.used_count} / {coupon.usage_limit || "ไม่จำกัด"}
+                                  {coupon.used_count} /{" "}
+                                  {coupon.usage_limit || "ไม่จำกัด"}
                                 </Text>
                                 {coupon.usage_limit > 0 && (
                                   <Box w="full">
-                                    <Progress 
-                                      value={(coupon.used_count / coupon.usage_limit) * 100}
+                                    <Progress
+                                      value={
+                                        (coupon.used_count /
+                                          coupon.usage_limit) *
+                                        100
+                                      }
                                       size="sm"
                                       colorScheme="blue"
                                       borderRadius="md"
@@ -977,7 +1121,11 @@ const AddCouponForm = () => {
                             </SimpleGrid>
 
                             <VStack align="start" spacing={2}>
-                              <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                              <Text
+                                fontSize="xs"
+                                color="gray.500"
+                                fontWeight="medium"
+                              >
                                 วันที่ใช้งาน
                               </Text>
                               <HStack spacing={2} fontSize="sm">
@@ -988,15 +1136,20 @@ const AddCouponForm = () => {
                             </VStack>
 
                             <VStack align="start" spacing={2}>
-                              <Text fontSize="xs" color="gray.500" fontWeight="medium">
-                                ขอบเขตการใช้งาน
+                              <Text
+                                fontSize="xs"
+                                color="gray.500"
+                                fontWeight="medium"
+                              >
+                                ຂອບເຂດການໃຊ້ງານ
                               </Text>
                               <HStack>
                                 <Badge
                                   colorScheme={
                                     coupon.applicable_type === "all_system"
                                       ? "purple"
-                                      : coupon.applicable_type === "specific_stores"
+                                      : coupon.applicable_type ===
+                                        "specific_stores"
                                       ? "blue"
                                       : "green"
                                   }
@@ -1004,10 +1157,11 @@ const AddCouponForm = () => {
                                   fontSize="xs"
                                 >
                                   {coupon.applicable_type === "all_system"
-                                    ? "🌐 ทั้งระบบ"
-                                    : coupon.applicable_type === "specific_stores"
-                                    ? "🏪 ร้านเฉพาะ"
-                                    : "📦 สินค้าเฉพาะ"}
+                                    ? "🌐 ທັງລະບົບ"
+                                    : coupon.applicable_type ===
+                                      "specific_stores"
+                                    ? "🏪 ຮ້ານສະເພາະ"
+                                    : "📦 ສິນຄ້າສະເພາະ"}
                                 </Badge>
                               </HStack>
                               <Text fontSize="xs" color="gray.600">
@@ -1026,9 +1180,9 @@ const AddCouponForm = () => {
                                 variant="outline"
                                 onClick={() => handleEdit(coupon)}
                                 flex="1"
-                                _hover={{ 
+                                _hover={{
                                   bg: "blue.50",
-                                  transform: "translateY(-1px)"
+                                  transform: "translateY(-1px)",
                                 }}
                                 transition="all 0.2s"
                               >
@@ -1041,13 +1195,13 @@ const AddCouponForm = () => {
                                 variant="outline"
                                 onClick={() => handleDelete(coupon)}
                                 flex="1"
-                                _hover={{ 
+                                _hover={{
                                   bg: "red.50",
-                                  transform: "translateY(-1px)"
+                                  transform: "translateY(-1px)",
                                 }}
                                 transition="all 0.2s"
                               >
-                                ลบ
+                                ລົບ
                               </Button>
                             </HStack>
                           </VStack>
@@ -1065,10 +1219,10 @@ const AddCouponForm = () => {
                     <Text fontSize="6xl">🔍</Text>
                     <VStack spacing={2}>
                       <Text fontSize="lg" fontWeight="medium" color="gray.600">
-                        ไม่พบคูปองที่ตรงกับเงื่อนไขการค้นหา
+                        ບໍ່ພົບຄູ່ປອງທີ່ກົງກັບເງື່ອນໄຂຄົ້ນຫາ
                       </Text>
                       <Text fontSize="sm" color="gray.500">
-                        ลองเปลี่ยนคำค้นหาหรือตัวกรอง หรือสร้างคูปองใหม่
+                        ລອງປ່ຽນຄຳຄົ້ນຫາ
                       </Text>
                     </VStack>
                     <Button
@@ -1080,7 +1234,7 @@ const AddCouponForm = () => {
                         onOpen();
                       }}
                     >
-                      เพิ่มคูปองใหม่
+                      ເພີ່ມຄູ່ປອງໃໝ່
                     </Button>
                   </VStack>
                 </Center>
@@ -1092,16 +1246,16 @@ const AddCouponForm = () => {
         {/* Enhanced Add/Edit Coupon Modal */}
         <Modal isOpen={isOpen} onClose={onClose} size={modalSize}>
           <ModalOverlay bg="blackAlpha.600" backdropFilter="blur(10px)" />
-          <ModalContent 
-            borderRadius="2xl" 
+          <ModalContent
+            borderRadius="2xl"
             shadow="2xl"
             maxH="90vh"
             overflowY="auto"
             mx={{ base: 2, md: 4 }}
           >
-            <ModalHeader 
-              bg="blue.500" 
-              color="white" 
+            <ModalHeader
+              bg="blue.500"
+              color="white"
               borderTopRadius="2xl"
               py={6}
             >
@@ -1111,25 +1265,35 @@ const AddCouponForm = () => {
                 </Box>
                 <VStack align="start" spacing={0}>
                   <Text fontSize="xl" fontWeight="bold">
-                    {editingCoupon ? "✏️ แก้ไขคูปอง" : "➕ เพิ่มคูปองใหม่"}
+                    {editingCoupon ? "✏️ ແກ້ໄຂຄູ່ປອງ" : "➕ ເພີ່ມຄູ່ປອງໃໝ່"}
                   </Text>
                   <Text fontSize="sm" opacity={0.9}>
-                    {editingCoupon ? "อัปเดตข้อมูลคูปอง" : "สร้างคูปองส่วนลดใหม่"}
+                    {editingCoupon ? "ອັບເດດຄູ່ປອງ" : "ສ້າງຄູ່ປອງສ່ວນຫລຸດໃຫມ່"}
                   </Text>
                 </VStack>
               </HStack>
             </ModalHeader>
             <ModalCloseButton color="white" size="lg" />
-            
+
             <ModalBody p={6}>
               <form onSubmit={handleSubmit}>
                 <VStack spacing={8} align="stretch">
                   {/* Basic Information */}
-                  <Card bg="blue.50" borderLeft="4px" borderLeftColor="blue.400">
+                  <Card
+                    bg="blue.50"
+                    borderLeft="4px"
+                    borderLeftColor="blue.400"
+                  >
                     <CardHeader pb={3}>
                       <HStack>
                         <Text fontSize="2xl">📝</Text>
-                        <Heading size="md" color="blue.700">ข้อมูลพื้นฐาน</Heading>
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="blue.700"
+                        >
+                          ຂໍ້ມູນພື້ນຖານ
+                        </Heading>
                       </HStack>
                     </CardHeader>
                     <CardBody pt={0}>
@@ -1139,7 +1303,7 @@ const AddCouponForm = () => {
                       >
                         <FormControl isInvalid={errors.coupon_code} isRequired>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🏷️ รหัสคูปอง
+                            🏷️ ລະຫັດຄູ່ປອງ
                           </FormLabel>
                           <Input
                             type="text"
@@ -1158,15 +1322,17 @@ const AddCouponForm = () => {
                             fontWeight="bold"
                             _focus={{
                               borderColor: "blue.400",
-                              shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)"
+                              shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)",
                             }}
                           />
-                          <FormErrorMessage>{errors.coupon_code}</FormErrorMessage>
+                          <FormErrorMessage>
+                            {errors.coupon_code}
+                          </FormErrorMessage>
                         </FormControl>
 
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            ⚡ สถานะ
+                            ⚡ ສະຖານະ
                           </FormLabel>
                           <Select
                             value={formData?.status}
@@ -1177,31 +1343,31 @@ const AddCouponForm = () => {
                             borderRadius="lg"
                             _focus={{
                               borderColor: "blue.400",
-                              shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)"
+                              shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)",
                             }}
                           >
-                            <option value="active">✅ ใช้งานได้</option>
-                            <option value="inactive">⏸️ ไม่ใช้งาน</option>
+                            <option value="active">✅ ໃຊ້ງານໄດ້</option>
+                            <option value="inactive">⏸️ ບໍ່ໃຊ້ງານ</option>
                           </Select>
                         </FormControl>
                       </Grid>
 
                       <FormControl mt={6}>
                         <FormLabel fontWeight="semibold" color="gray.700">
-                          📄 คำอธิบาย
+                          📄 ຄຳອະທິບາຍ
                         </FormLabel>
                         <Textarea
                           value={formData?.description}
                           onChange={(e) =>
                             handleInputChange("description", e.target.value)
                           }
-                          placeholder="อธิบายเกี่ยวกับคูปองนี้..."
+                          placeholder="ຄຳອະທິບາຍກ່ຽວກັບ..."
                           resize="vertical"
                           bg="white"
                           borderRadius="lg"
                           _focus={{
                             borderColor: "blue.400",
-                            shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)"
+                            shadow: "0 0 0 1px rgba(66, 153, 225, 0.6)",
                           }}
                         />
                       </FormControl>
@@ -1209,11 +1375,21 @@ const AddCouponForm = () => {
                   </Card>
 
                   {/* Discount Settings */}
-                  <Card bg="green.50" borderLeft="4px" borderLeftColor="green.400">
+                  <Card
+                    bg="green.50"
+                    borderLeft="4px"
+                    borderLeftColor="green.400"
+                  >
                     <CardHeader pb={3}>
                       <HStack>
                         <Text fontSize="2xl">💰</Text>
-                        <Heading size="md" color="green.700">การตั้งค่าส่วนลด</Heading>
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="green.700"
+                        >
+                          ການຕັ້ງຄ່າສ່ວນຫລຸດ
+                        </Heading>
                       </HStack>
                     </CardHeader>
                     <CardBody pt={0}>
@@ -1223,7 +1399,7 @@ const AddCouponForm = () => {
                       >
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🏷️ ประเภทส่วนลด
+                            🏷️ ປະເພດສ່ວນຫລຸດ
                           </FormLabel>
                           <Select
                             value={formData?.discount_type}
@@ -1234,20 +1410,23 @@ const AddCouponForm = () => {
                             borderRadius="lg"
                             _focus={{
                               borderColor: "green.400",
-                              shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)"
+                              shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)",
                             }}
                           >
-                            <option value="percentage">📊 เปอร์เซ็นต์</option>
-                            <option value="fixed">💵 จำนวนเงินคงที่</option>
+                            <option value="percentage">📊 ເປີເຊັນ</option>
+                            <option value="fixed">💵 ຈຳນວນຄົງທີ່</option>
                           </Select>
                         </FormControl>
 
-                        <FormControl isInvalid={errors.discount_value} isRequired>
+                        <FormControl
+                          isInvalid={errors.discount_value}
+                          isRequired
+                        >
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            💎 มูลค่าส่วนลด{" "}
+                            💎 ມູນຄ່າສ່ວນຫລຸດ{" "}
                             {formData?.discount_type === "percentage"
                               ? "(%)"
-                              : "(บาท)"}
+                              : "(LAK)"}
                           </FormLabel>
                           <NumberInput
                             min={0}
@@ -1273,11 +1452,13 @@ const AddCouponForm = () => {
                               fontWeight="semibold"
                               _focus={{
                                 borderColor: "green.400",
-                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)"
+                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)",
                               }}
                             />
                           </NumberInput>
-                          <FormErrorMessage>{errors.discount_value}</FormErrorMessage>
+                          <FormErrorMessage>
+                            {errors.discount_value}
+                          </FormErrorMessage>
                         </FormControl>
                       </Grid>
 
@@ -1288,7 +1469,7 @@ const AddCouponForm = () => {
                       >
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            📈 ยอดสั่งซื้อขั้นต่ำ (บาท)
+                            📈 ຍອດສັ່ງຊື້ຂັ້ນຕໍ່າ (LAK)
                           </FormLabel>
                           <NumberInput
                             min={0}
@@ -1300,13 +1481,13 @@ const AddCouponForm = () => {
                               )
                             }
                           >
-                            <NumberInputField 
-                              placeholder="ยอดสั่งซื้อขั้นต่ำ"
+                            <NumberInputField
+                              placeholder="ຍອດສັ່ງຊື້ຂັ້ນຕໍ່າ"
                               bg="white"
                               borderRadius="lg"
                               _focus={{
                                 borderColor: "green.400",
-                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)"
+                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)",
                               }}
                             />
                           </NumberInput>
@@ -1314,7 +1495,7 @@ const AddCouponForm = () => {
 
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🎯 จำนวนส่วนลดสูงสุด (บาท)
+                            🎯 ຈຳນວນສ່ວນຫລຸດສູງສຸດ (LAK)
                           </FormLabel>
                           <NumberInput
                             min={0}
@@ -1326,13 +1507,13 @@ const AddCouponForm = () => {
                               )
                             }
                           >
-                            <NumberInputField 
-                              placeholder="จำนวนส่วนลดสูงสุด"
+                            <NumberInputField
+                              placeholder="ຈຳນວນສ່ວນຫລຸດສູງສຸດ"
                               bg="white"
                               borderRadius="lg"
                               _focus={{
                                 borderColor: "green.400",
-                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)"
+                                shadow: "0 0 0 1px rgba(72, 187, 120, 0.6)",
                               }}
                             />
                           </NumberInput>
@@ -1342,11 +1523,21 @@ const AddCouponForm = () => {
                   </Card>
 
                   {/* Date Range */}
-                  <Card bg="purple.50" borderLeft="4px" borderLeftColor="purple.400">
+                  <Card
+                    bg="purple.50"
+                    borderLeft="4px"
+                    borderLeftColor="purple.400"
+                  >
                     <CardHeader pb={3}>
                       <HStack>
                         <Text fontSize="2xl">📅</Text>
-                        <Heading size="md" color="purple.700">ระยะเวลาใช้งาน</Heading>
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="purple.700"
+                        >
+                          ໄລຍະເວລາການໃຊ້ງານ
+                        </Heading>
                       </HStack>
                     </CardHeader>
                     <CardBody pt={0}>
@@ -1356,7 +1547,7 @@ const AddCouponForm = () => {
                       >
                         <FormControl isInvalid={errors.start_date} isRequired>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🚀 วันที่เริ่มต้น
+                            🚀 ວັນທີ່ເລີ່ມ
                           </FormLabel>
                           <Input
                             type="date"
@@ -1368,15 +1559,17 @@ const AddCouponForm = () => {
                             borderRadius="lg"
                             _focus={{
                               borderColor: "purple.400",
-                              shadow: "0 0 0 1px rgba(159, 122, 234, 0.6)"
+                              shadow: "0 0 0 1px rgba(159, 122, 234, 0.6)",
                             }}
                           />
-                          <FormErrorMessage>{errors.start_date}</FormErrorMessage>
+                          <FormErrorMessage>
+                            {errors.start_date}
+                          </FormErrorMessage>
                         </FormControl>
 
                         <FormControl isInvalid={errors.end_date} isRequired>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🏁 วันที่สิ้นสุด
+                            🏁 ວັນທີ່ສິ້ນສຸດ
                           </FormLabel>
                           <Input
                             type="date"
@@ -1388,7 +1581,7 @@ const AddCouponForm = () => {
                             borderRadius="lg"
                             _focus={{
                               borderColor: "purple.400",
-                              shadow: "0 0 0 1px rgba(159, 122, 234, 0.6)"
+                              shadow: "0 0 0 1px rgba(159, 122, 234, 0.6)",
                             }}
                           />
                           <FormErrorMessage>{errors.end_date}</FormErrorMessage>
@@ -1398,11 +1591,21 @@ const AddCouponForm = () => {
                   </Card>
 
                   {/* Usage Limits */}
-                  <Card bg="orange.50" borderLeft="4px" borderLeftColor="orange.400">
+                  <Card
+                    bg="orange.50"
+                    borderLeft="4px"
+                    borderLeftColor="orange.400"
+                  >
                     <CardHeader pb={3}>
                       <HStack>
                         <Text fontSize="2xl">🔢</Text>
-                        <Heading size="md" color="orange.700">ข้อจำกัดการใช้งาน</Heading>
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="orange.700"
+                        >
+                          ຂໍ້ຈຳກັດການໃຊ້ງານ
+                        </Heading>
                       </HStack>
                     </CardHeader>
                     <CardBody pt={0}>
@@ -1412,7 +1615,7 @@ const AddCouponForm = () => {
                       >
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            🎟️ จำนวนครั้งที่ใช้ได้
+                            🎟️ ຈຳນວນຄັ້ງທີ່ໃຊ້ໄດ້
                           </FormLabel>
                           <NumberInput
                             min={0}
@@ -1427,7 +1630,7 @@ const AddCouponForm = () => {
                               borderRadius="lg"
                               _focus={{
                                 borderColor: "orange.400",
-                                shadow: "0 0 0 1px rgba(251, 211, 141, 0.6)"
+                                shadow: "0 0 0 1px rgba(251, 211, 141, 0.6)",
                               }}
                             />
                           </NumberInput>
@@ -1435,7 +1638,7 @@ const AddCouponForm = () => {
 
                         <FormControl>
                           <FormLabel fontWeight="semibold" color="gray.700">
-                            📊 จำนวนครั้งที่ถูกใช้แล้ว
+                            📊 ຈຳນວນຄັ້ງທີ່ໃຊ້ແລ້ວ
                           </FormLabel>
                           <NumberInput isReadOnly>
                             <NumberInputField
@@ -1456,31 +1659,49 @@ const AddCouponForm = () => {
                     <CardHeader pb={3}>
                       <HStack>
                         <Text fontSize="2xl">🎯</Text>
-                        <Heading size="md" color="red.700">ขอบเขตการใช้งาน</Heading>
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="red.700"
+                        >
+                          ຂອບເຂດການໃຊ້ງານ
+                        </Heading>
                       </HStack>
                     </CardHeader>
                     <CardBody pt={0}>
                       <FormControl isInvalid={errors.stores || errors.products}>
-                        <FormLabel fontWeight="semibold" color="gray.700" mb={4}>
-                          เลือกขอบเขตการใช้งาน
+                        <FormLabel
+                          fontWeight="semibold"
+                          color="gray.700"
+                          mb={4}
+                        >
+                          ເລືອກຂອບເຂດການໃຊ້ງານ
                         </FormLabel>
-                        
+
                         <RadioGroup
                           value={formData.applicable_type}
                           onChange={handleApplicableTypeChange}
                         >
                           <VStack align="start" spacing={6}>
-                            <Card 
-                              p={4} 
-                              w="full" 
-                              bg={formData.applicable_type === "all_system" ? "purple.100" : "white"}
-                              borderColor={formData.applicable_type === "all_system" ? "purple.300" : "gray.200"}
+                            <Card
+                              p={4}
+                              w="full"
+                              bg={
+                                formData.applicable_type === "all_system"
+                                  ? "purple.100"
+                                  : "white"
+                              }
+                              borderColor={
+                                formData.applicable_type === "all_system"
+                                  ? "purple.300"
+                                  : "gray.200"
+                              }
                               borderWidth="2px"
                               cursor="pointer"
                               _hover={{ shadow: "md" }}
                               transition="all 0.2s"
                             >
-                              <Radio 
+                              <Radio
                                 value="all_system"
                                 size="lg"
                                 colorScheme="purple"
@@ -1489,27 +1710,35 @@ const AddCouponForm = () => {
                                   <HStack>
                                     <Text fontSize="xl">🌐</Text>
                                     <Text fontWeight="bold" fontSize="lg">
-                                      ใช้ได้ทั้งระบบ
+                                      ໃຊ້ໄດ້ທັງລະບົບ
                                     </Text>
                                   </HStack>
                                   <Text fontSize="sm" color="gray.600">
-                                    คูปองนี้สามารถใช้ได้กับทุกร้านค้าและทุกสินค้าในระบบ
+                                    ຄູ່ປອງນີ້ສາມາດໃຊ້ໄດ້ກັບທຸກຮ້ານຄ້າທຸກສິນຄ້າໃນລະບົບ
                                   </Text>
                                 </VStack>
                               </Radio>
                             </Card>
 
-                            <Card 
-                              p={4} 
-                              w="full" 
-                              bg={formData.applicable_type === "specific_stores" ? "blue.100" : "white"}
-                              borderColor={formData.applicable_type === "specific_stores" ? "blue.300" : "gray.200"}
+                            <Card
+                              p={4}
+                              w="full"
+                              bg={
+                                formData.applicable_type === "specific_stores"
+                                  ? "blue.100"
+                                  : "white"
+                              }
+                              borderColor={
+                                formData.applicable_type === "specific_stores"
+                                  ? "blue.300"
+                                  : "gray.200"
+                              }
                               borderWidth="2px"
                               cursor="pointer"
                               _hover={{ shadow: "md" }}
                               transition="all 0.2s"
                             >
-                              <Radio 
+                              <Radio
                                 value="specific_stores"
                                 size="lg"
                                 colorScheme="blue"
@@ -1518,27 +1747,35 @@ const AddCouponForm = () => {
                                   <HStack>
                                     <Text fontSize="xl">🏪</Text>
                                     <Text fontWeight="bold" fontSize="lg">
-                                      ใช้ได้เฉพาะร้านค้าที่เลือก
+                                      ໃຊ້ໄດ້ສະເພາະຮ້ານຄ້າທີ່ເລືອກ
                                     </Text>
                                   </HStack>
                                   <Text fontSize="sm" color="gray.600">
-                                    คูปองนี้สามารถใช้ได้เฉพาะกับร้านค้าที่เลือกเท่านั้น
+                                    ຄູ່ປອງນີ້ສາມາດໃຊ້ໄດ້ກັບສະເພາະຮ້ານຄ້າທີ່ເລືອກເທົ່ານັ້ນ
                                   </Text>
                                 </VStack>
                               </Radio>
                             </Card>
 
-                            <Card 
-                              p={4} 
-                              w="full" 
-                              bg={formData.applicable_type === "specific_products" ? "green.100" : "white"}
-                              borderColor={formData.applicable_type === "specific_products" ? "green.300" : "gray.200"}
+                            <Card
+                              p={4}
+                              w="full"
+                              bg={
+                                formData.applicable_type === "specific_products"
+                                  ? "green.100"
+                                  : "white"
+                              }
+                              borderColor={
+                                formData.applicable_type === "specific_products"
+                                  ? "green.300"
+                                  : "gray.200"
+                              }
                               borderWidth="2px"
                               cursor="pointer"
                               _hover={{ shadow: "md" }}
                               transition="all 0.2s"
                             >
-                              <Radio 
+                              <Radio
                                 value="specific_products"
                                 size="lg"
                                 colorScheme="green"
@@ -1547,11 +1784,11 @@ const AddCouponForm = () => {
                                   <HStack>
                                     <Text fontSize="xl">📦</Text>
                                     <Text fontWeight="bold" fontSize="lg">
-                                      ใช้ได้เฉพาะสินค้าที่เลือก
+                                      ໃຊ້ໄດ້ສະເພາະສິນຄ້າທີ່ເລືອກ
                                     </Text>
                                   </HStack>
                                   <Text fontSize="sm" color="gray.600">
-                                    คูปองนี้สามารถใช้ได้เฉพาะกับสินค้าที่เลือกเท่านั้น
+                                    ຄູ່ປອງນີ້ສາມາດໃຊ້ໄດ້ກັບສະເພາະສິນຄ້າທີ່ເລືອກເທົ່ານັ້ນ
                                   </Text>
                                 </VStack>
                               </Radio>
@@ -1565,7 +1802,9 @@ const AddCouponForm = () => {
                             <Alert status="info" mb={6} borderRadius="lg">
                               <AlertIcon />
                               <AlertDescription>
-                                <strong>เลือกร้านค้าที่ต้องการให้ใช้คูปองได้</strong>
+                                <strong>
+                                  ເລືອກຮ້ານຄ້າທີ່ຕ້ອງການໃຫ້ໃຊ້ຄູ່ປອງໄດ້
+                                </strong>
                               </AlertDescription>
                             </Alert>
 
@@ -1574,16 +1813,31 @@ const AddCouponForm = () => {
                               onChange={handleChange}
                             >
                               <Grid
-                                templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }}
+                                templateColumns={{
+                                  base: "1fr",
+                                  md: "repeat(2, 1fr)",
+                                }}
                                 gap={4}
                               >
                                 {stores?.map((store) => (
-                                  <Card 
+                                  <Card
                                     key={store._id}
                                     p={4}
                                     borderWidth="2px"
-                                    borderColor={selectedStores.some(s => s._id === store._id) ? "blue.300" : "gray.200"}
-                                    bg={selectedStores.some(s => s._id === store._id) ? "blue.50" : "white"}
+                                    borderColor={
+                                      selectedStores.some(
+                                        (s) => s._id === store._id
+                                      )
+                                        ? "blue.300"
+                                        : "gray.200"
+                                    }
+                                    bg={
+                                      selectedStores.some(
+                                        (s) => s._id === store._id
+                                      )
+                                        ? "blue.50"
+                                        : "white"
+                                    }
                                     _hover={{ shadow: "md" }}
                                     transition="all 0.2s"
                                   >
@@ -1605,7 +1859,7 @@ const AddCouponForm = () => {
                                           </Text>
                                         </HStack>
                                         <Text fontSize="sm" color="gray.600">
-                                          รหัส: {store.store_code}
+                                          ລະຫັດຄູ່ປອງ: {store.store_code}
                                         </Text>
                                       </VStack>
                                     </Checkbox>
@@ -1616,8 +1870,14 @@ const AddCouponForm = () => {
 
                             {selectedStores.length > 0 && (
                               <Box mt={6} p={4} bg="blue.50" borderRadius="lg">
-                                <Text fontSize="sm" mb={3} fontWeight="bold" color="blue.700">
-                                  ร้านค้าที่เลือก ({selectedStores.length} ร้าน):
+                                <Text
+                                  fontSize="sm"
+                                  mb={3}
+                                  fontWeight="bold"
+                                  color="blue.700"
+                                >
+                                  ร้านค้าที่เลือก ({selectedStores.length}{" "}
+                                  ร้าน):
                                 </Text>
                                 <Flex wrap="wrap" gap={2}>
                                   {selectedStores.map((store) => (
@@ -1642,19 +1902,22 @@ const AddCouponForm = () => {
                             <Alert status="info" mb={6} borderRadius="lg">
                               <AlertIcon />
                               <AlertDescription>
-                                <strong>เลือกสินค้าที่ต้องการให้ใช้คูปองได้ (แยกตามร้านค้า)</strong>
+                                <strong>
+                                  ເລືອກສິນຄ້າທີ່ຕ້ອງການໃຫ້ໃຊ້ຄູ່ປອງໄດ້
+                                  (ແຍກຕາມຮ້ານຄ້າ)
+                                </strong>
                               </AlertDescription>
                             </Alert>
 
                             <Tabs variant="enclosed" colorScheme="green">
                               <TabList flexWrap="wrap">
                                 {stores?.map((store) => (
-                                  <Tab 
+                                  <Tab
                                     key={store._id}
                                     fontSize={{ base: "sm", md: "md" }}
-                                    _selected={{ 
-                                      bg: "green.500", 
-                                      color: "white" 
+                                    _selected={{
+                                      bg: "green.500",
+                                      color: "white",
                                     }}
                                   >
                                     🏪 {store.store_name}
@@ -1674,20 +1937,32 @@ const AddCouponForm = () => {
                                           onChange={handleProductSelection}
                                         >
                                           <Grid
-                                            templateColumns={{ 
-                                              base: "1fr", 
+                                            templateColumns={{
+                                              base: "1fr",
                                               md: "repeat(2, 1fr)",
-                                              lg: "repeat(3, 1fr)"
+                                              lg: "repeat(3, 1fr)",
                                             }}
                                             gap={4}
                                           >
                                             {storeProducts.map((product) => (
-                                              <Card 
+                                              <Card
                                                 key={product._id}
                                                 p={4}
                                                 borderWidth="2px"
-                                                borderColor={selectedProducts.includes(product._id) ? "green.300" : "gray.200"}
-                                                bg={selectedProducts.includes(product._id) ? "green.50" : "white"}
+                                                borderColor={
+                                                  selectedProducts.includes(
+                                                    product._id
+                                                  )
+                                                    ? "green.300"
+                                                    : "gray.200"
+                                                }
+                                                bg={
+                                                  selectedProducts.includes(
+                                                    product._id
+                                                  )
+                                                    ? "green.50"
+                                                    : "white"
+                                                }
                                                 _hover={{ shadow: "md" }}
                                                 transition="all 0.2s"
                                               >
@@ -1696,15 +1971,30 @@ const AddCouponForm = () => {
                                                   size="lg"
                                                   colorScheme="green"
                                                 >
-                                                  <VStack align="start" spacing={1} ml={2}>
+                                                  <VStack
+                                                    align="start"
+                                                    spacing={1}
+                                                    ml={2}
+                                                  >
                                                     <HStack>
-                                                      <Text fontSize="lg">📦</Text>
-                                                      <Text fontWeight="bold" fontSize="sm">
+                                                      <Text fontSize="lg">
+                                                        📦
+                                                      </Text>
+                                                      <Text
+                                                        fontWeight="bold"
+                                                        fontSize="sm"
+                                                      >
                                                         {product.name}
                                                       </Text>
                                                     </HStack>
-                                                    <Text fontSize="xs" color="gray.600">
-                                                      {formatCurrency(product.price)} | {product.category}
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color="gray.600"
+                                                    >
+                                                      {formatCurrency(
+                                                        product.price
+                                                      )}{" "}
+                                                      | {product.category}
                                                     </Text>
                                                   </VStack>
                                                 </Checkbox>
@@ -1716,8 +2006,11 @@ const AddCouponForm = () => {
                                         <Center py={12}>
                                           <VStack spacing={3}>
                                             <Text fontSize="4xl">📦</Text>
-                                            <Text color="gray.500" textAlign="center">
-                                              ไม่มีสินค้าในร้านนี้
+                                            <Text
+                                              color="gray.500"
+                                              textAlign="center"
+                                            >
+                                              ບໍ່ມີສິນຄ້າໃນ້ຮ້ານນີ້
                                             </Text>
                                           </VStack>
                                         </Center>
@@ -1730,8 +2023,14 @@ const AddCouponForm = () => {
 
                             {selectedProducts.length > 0 && (
                               <Box mt={6} p={4} bg="green.50" borderRadius="lg">
-                                <Text fontSize="sm" mb={3} fontWeight="bold" color="green.700">
-                                  สินค้าที่เลือก ({selectedProducts.length} รายการ):
+                                <Text
+                                  fontSize="sm"
+                                  mb={3}
+                                  fontWeight="bold"
+                                  color="green.700"
+                                >
+                                  ສິນຄ້າທີ່ເລືອກ ({selectedProducts.length}{" "}
+                                  รายการ):
                                 </Text>
                                 <Flex wrap="wrap" gap={2}>
                                   {selectedProducts.map((productId) => {
@@ -1739,7 +2038,8 @@ const AddCouponForm = () => {
                                       (p) => p._id === productId
                                     );
                                     const store = stores?.find(
-                                      (s) => s.user_id._id === product?.user_id._id
+                                      (s) =>
+                                        s.user_id._id === product?.user_id._id
                                     );
                                     return (
                                       <Tag
@@ -1749,7 +2049,8 @@ const AddCouponForm = () => {
                                         borderRadius="full"
                                       >
                                         <TagLabel>
-                                          📦 {product?.name} ({store?.store_name})
+                                          📦 {product?.name} (
+                                          {store?.store_name})
                                         </TagLabel>
                                       </Tag>
                                     );
@@ -1770,19 +2071,15 @@ const AddCouponForm = () => {
               </form>
             </ModalBody>
 
-            <ModalFooter 
-              bg="gray.50" 
-              borderBottomRadius="2xl"
-              py={6}
-            >
+            <ModalFooter bg="gray.50" borderBottomRadius="2xl" py={6}>
               <HStack spacing={4} w="full" justify="end">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={onClose}
                   size="lg"
                   _hover={{ bg: "gray.200" }}
                 >
-                  ❌ ยกเลิก
+                  ❌ ຍົກເລີກ
                 </Button>
                 <Button
                   colorScheme="blue"
@@ -1791,15 +2088,17 @@ const AddCouponForm = () => {
                   size="lg"
                   leftIcon={editingCoupon ? <EditIcon /> : <AddIcon />}
                   shadow="lg"
-                  _hover={{ 
+                  _hover={{
                     transform: "translateY(-2px)",
-                    shadow: "xl"
+                    shadow: "xl",
                   }}
                   transition="all 0.2s"
                   isLoading={loader}
-                  loadingText={editingCoupon ? "กำลังบันทึก..." : "กำลังเพิ่ม..."}
+                  loadingText={
+                    editingCoupon ? "ກຳລັງບັນທຶກ..." : "ກຳລັງເພີ່ມ..."
+                  }
                 >
-                  {editingCoupon ? "💾 บันทึกการแก้ไข" : "➕ บันทึกคูปอง"}
+                  {editingCoupon ? "💾 ບັນທຶກການແກ້ໄຂ" : "➕ ບັນທຶກຄູປອງ"}
                 </Button>
               </HStack>
             </ModalFooter>
@@ -1809,13 +2108,13 @@ const AddCouponForm = () => {
         {/* Enhanced Delete Confirmation Dialog */}
         <AlertDialog isOpen={isDeleteOpen} onClose={onDeleteClose}>
           <AlertDialogOverlay bg="blackAlpha.600" backdropFilter="blur(10px)">
-            <AlertDialogContent 
-              borderRadius="2xl" 
+            <AlertDialogContent
+              borderRadius="2xl"
               shadow="2xl"
               mx={{ base: 2, md: 4 }}
             >
-              <AlertDialogHeader 
-                fontSize="xl" 
+              <AlertDialogHeader
+                fontSize="xl"
                 fontWeight="bold"
                 bg="red.500"
                 color="white"
@@ -1824,7 +2123,7 @@ const AddCouponForm = () => {
               >
                 <HStack spacing={3}>
                   <Text fontSize="2xl">⚠️</Text>
-                  <Text>ยืนยันการลบคูปอง</Text>
+                  <Text>ຢືນຢັນລົບຄູ່ປອງ</Text>
                 </HStack>
               </AlertDialogHeader>
 
@@ -1832,12 +2131,12 @@ const AddCouponForm = () => {
                 <VStack align="start" spacing={6}>
                   <Box>
                     <Text fontSize="lg" mb={2}>
-                      คุณแน่ใจหรือไม่ที่จะลบคูปอง
+                      ເຈົ້າແນ່ໃຈບໍ່ທີ່ຈະລົບຄູ່ປອງ
                     </Text>
                     <Card bg="red.50" p={4} borderRadius="lg">
-                      <Text 
-                        fontWeight="bold" 
-                        fontSize="xl" 
+                      <Text
+                        fontWeight="bold"
+                        fontSize="xl"
                         color="red.600"
                         textAlign="center"
                       >
@@ -1845,12 +2144,12 @@ const AddCouponForm = () => {
                       </Text>
                     </Card>
                   </Box>
-                  
+
                   <Alert status="warning" borderRadius="lg">
                     <AlertIcon />
                     <AlertDescription>
-                      <strong>คำเตือน:</strong> การดำเนินการนี้ไม่สามารถย้อนกลับได้
-                      และจะส่งผลต่อลูกค้าที่อาจกำลังใช้คูปองนี้
+                      <strong>ຄຳເຕືອນ:</strong>{" "}
+                      ການດຳເນີນການນີ້ບໍ່ສາມາດຍ້ອນກັບໄດ້ແລະຈະສົ່ງຜົນຕໍ່ລູກຄ້າທີ່ອາດກຳລັງໃຊ້ຄູ່ປອງນີ້ຢູ່
                     </AlertDescription>
                   </Alert>
                 </VStack>
@@ -1858,26 +2157,26 @@ const AddCouponForm = () => {
 
               <AlertDialogFooter bg="gray.50" borderBottomRadius="2xl" py={6}>
                 <HStack spacing={4}>
-                  <Button 
+                  <Button
                     onClick={onDeleteClose}
                     size="lg"
                     _hover={{ bg: "gray.200" }}
                   >
-                    ❌ ยกเลิก
+                    ❌ ຍົກເລີກ
                   </Button>
-                  <Button 
-                    colorScheme="red" 
+                  <Button
+                    colorScheme="red"
                     onClick={confirmDelete}
                     size="lg"
                     leftIcon={<DeleteIcon />}
                     shadow="lg"
-                    _hover={{ 
+                    _hover={{
                       transform: "translateY(-2px)",
-                      shadow: "xl"
+                      shadow: "xl",
                     }}
                     transition="all 0.2s"
                   >
-                    🗑️ ลบคูปอง
+                    🗑️ ລົບຄູປອງ
                   </Button>
                 </HStack>
               </AlertDialogFooter>

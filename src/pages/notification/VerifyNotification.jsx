@@ -17,7 +17,7 @@ const VerifyNotification = () => {
     // 2. รับ event ที่ส่งจาก backend
     socket.on("verify_result", (data) => {
       toast({
-        title: "📣 แจ้งเตือนการยืนยันตัวตน",
+        title: "📣 ແຈ້ງເຕືອນຢືນຢັນຕົວຕົນ",
         description: data.message,
         status:
           data.status === "access"

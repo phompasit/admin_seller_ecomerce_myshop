@@ -35,34 +35,16 @@ import {
   NumberInputField,
   Checkbox,
   Stack,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText,
   IconButton,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
   useToast,
   Switch,
   Tooltip,
   Card,
   CardBody,
   SimpleGrid,
-  Divider,
-  Spinner,
   Alert,
   AlertIcon,
   AlertTitle,
@@ -72,22 +54,15 @@ import {
 } from "@chakra-ui/react";
 import {
   Search,
-  Filter,
   Edit,
   Eye,
   Check,
   X,
   Star,
-  MoreVertical,
   Download,
   Upload,
   TrendingUp,
   Package,
-  AlertTriangle,
-  Calendar,
-  User,
-  Tag,
-  ShoppingCart,
   RefreshCw,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -98,6 +73,8 @@ import {
   approve_seller,
   // reject_product,
   toggleFeatured,
+  reject_product,
+  bulk_approve_products,
   // toggle_status,
 } from "../../hooks/reducer/admin_reducer/provider_reducer";
 
@@ -166,7 +143,6 @@ const useProductFilters = (
   accessFilter
 ) => {
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
-
   return useMemo(() => {
     if (!products || !Array.isArray(products)) return [];
 
@@ -176,8 +152,8 @@ const useProductFilters = (
       const sanitizedSearchTerm = sanitizeInput(
         debouncedSearchTerm
       ).toLowerCase();
-      const productName = sanitizeInput(product.name || "").toLowerCase();
-      const productBrand = sanitizeInput(product.brand || "").toLowerCase();
+      const productName = sanitizeInput(product?.name || "").toLowerCase();
+      const productBrand = sanitizeInput(product?.brand || "").toLowerCase();
 
       const matchesSearch =
         !sanitizedSearchTerm ||
@@ -187,8 +163,8 @@ const useProductFilters = (
       const matchesCategory =
         !categoryFilter || product.categoryId?.name === categoryFilter;
       const matchesSeller =
-        !sellerFilter || product.seller?.name === sellerFilter;
-      const matchesStatus = !statusFilter || product.status === statusFilter;
+        !sellerFilter || product?.user_id?._id === sellerFilter;
+      const matchesStatus = !statusFilter || product?.status === statusFilter;
       const matchesAccess =
         !accessFilter || product.access_products === accessFilter;
 
@@ -229,24 +205,11 @@ const ProductTableRow = React.memo(
     onSelect,
     onApprove,
     onReject,
-    onEdit,
+    // onEdit,
     onPreview,
     onToggleFeatured,
     onToggleStatus,
   }) => {
-    // const getStatusColor = (status) => {
-    //   switch (status) {
-    //     case PRODUCT_STATUS.AVAILABLE:
-    //       return "green";
-    //     case PRODUCT_STATUS.OUT_OF_STOCK:
-    //       return "red";
-    //     case PRODUCT_STATUS.TEMPORARILY_UNAVAILABLE:
-    //       return "orange";
-    //     default:
-    //       return "gray";
-    //   }
-    // };
-
     const getAccessColor = (access) => {
       switch (access) {
         case ACCESS_STATUS.ACCESS:
@@ -263,11 +226,11 @@ const ProductTableRow = React.memo(
     const getAccessText = (access) => {
       switch (access) {
         case ACCESS_STATUS.ACCESS:
-          return "อนุมัติแล้ว";
+          return "ອະນຸມັດແລ້ວ";
         case ACCESS_STATUS.PROCESS:
-          return "รอดำเนินการ";
+          return "ລໍຖ້າດຳເນີນການ";
         case ACCESS_STATUS.REJECTED:
-          return "ถูกปฏิเสธ";
+          return "ຖືກປະຕິເສດ";
         default:
           return "ไม่ระบุ";
       }
@@ -316,7 +279,7 @@ const ProductTableRow = React.memo(
         </Td>
         <Td>
           <Badge variant="outline" colorScheme="blue">
-            {product.categoryId?.name || "ไม่มีหมวดหมู่"}
+            {product.categoryId?.name || "ບໍ່ມີໝວດໝູ່"}
           </Badge>
         </Td>
         <Td>
@@ -391,30 +354,31 @@ const ProductTableRow = React.memo(
         <Td>
           <HStack spacing={1}>
             {product.access_products === ACCESS_STATUS.PROCESS && (
-              <>
-                <Tooltip label="อนุมัติสินค้า">
-                  <IconButton
-                    size="sm"
-                    colorScheme="green"
-                    variant="ghost"
-                    icon={<Check size={16} />}
-                    onClick={() => onApprove(product._id)}
-                    aria-label="Approve product"
-                  />
-                </Tooltip>
-                <Tooltip label="ปฏิเสธสินค้า">
-                  <IconButton
-                    size="sm"
-                    colorScheme="red"
-                    variant="ghost"
-                    icon={<X size={16} />}
-                    onClick={() => onReject(product)}
-                    aria-label="Reject product"
-                  />
-                </Tooltip>
-              </>
+              <Tooltip label="ອະນຸມັດສິນຄ້າ">
+                <IconButton
+                  size="sm"
+                  colorScheme="green"
+                  variant="ghost"
+                  icon={<Check size={16} />}
+                  onClick={() => onApprove(product._id)}
+                  aria-label="Approve product"
+                />
+              </Tooltip>
             )}
-            <Tooltip label="แก้ไขสินค้า">
+            {product.access_products !== ACCESS_STATUS.REJECTED && (
+              <Tooltip label="ປະຕິເສດສິນຄ້າ">
+                <IconButton
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                  icon={<X size={16} />}
+                  onClick={() => onReject(product)}
+                  aria-label="Reject product"
+                />
+              </Tooltip>
+            )}
+            {/* 
+            <Tooltip label="ແກ້ໄຂສິນຄ້າ">
               <IconButton
                 size="sm"
                 colorScheme="blue"
@@ -423,8 +387,8 @@ const ProductTableRow = React.memo(
                 onClick={() => onEdit(product)}
                 aria-label="Edit product"
               />
-            </Tooltip>
-            <Tooltip label="ดูตัวอย่าง">
+            </Tooltip> */}
+            <Tooltip label="ເບີ່ງຕົວຢ່າງ">
               <IconButton
                 size="sm"
                 colorScheme="purple"
@@ -467,13 +431,10 @@ const ProductManagement = () => {
   // Redux state
   const {
     loader,
-    successMessage,
-    errorMessage,
     categoryList = [],
     get_seller = [],
     get_products = [],
   } = useSelector((state) => state.provider_reducer);
-
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -486,11 +447,11 @@ const ProductManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Modal states
-  const {
-    isOpen: isEditOpen,
-    onOpen: onEditOpen,
-    onClose: onEditClose,
-  } = useDisclosure();
+  // const {
+  //   isOpen: isEditOpen,
+  //   onOpen: onEditOpen,
+  //   onClose: onEditClose,
+  // } = useDisclosure();
   const {
     isOpen: isRejectOpen,
     onOpen: onRejectOpen,
@@ -528,10 +489,9 @@ const ProductManagement = () => {
           dispatch(get_category()),
         ]);
       } catch (error) {
-        console.log(error);
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลได้",
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: error.message || "ບໍ່ສາມາດໂຫລດຂໍ້ມູນໄດ້",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -544,31 +504,6 @@ const ProductManagement = () => {
     loadData();
   }, [dispatch, toast]);
 
-  // Handle success/error messages
-  useEffect(() => {
-    if (successMessage) {
-      toast({
-        title: "สำเร็จ",
-        description: successMessage,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  }, [successMessage, toast]);
-
-  useEffect(() => {
-    if (errorMessage) {
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: errorMessage,
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }, [errorMessage, toast]);
-
   // Event handlers
   const handleApprove = useCallback(
     async (productId) => {
@@ -576,19 +511,33 @@ const ProductManagement = () => {
 
       setIsLoading(true);
       try {
-        await dispatch(approve_seller(productId));
-        await dispatch(get_product());
-        toast({
-          title: "อนุมัติสินค้าเรียบร้อย",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
+        await dispatch(approve_seller(productId))
+          .unwrap()
+          .then(async (res) => {
+            toast({
+              title: "ສຳເລັດ",
+              description: res.message || `ສຳເລັດ`,
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+              position: "top-right",
+            });
+            await dispatch(get_product());
+          })
+          .catch((err) => {
+            toast({
+              title: "ເກີດຂໍ້ຜິດພາດ",
+              description: err.message || `ກະລຸນາລອງໃໝ່`,
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+              position: "top-right",
+            });
+          });
       } catch (error) {
-        console.log(error);
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถอนุมัติสินค้าได้",
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: error.message || "ບໍ່ສາມາດອະນຸມັດສິນຄ້າໄດ້ ກະລຸນາລອງໃໝ່",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -607,22 +556,41 @@ const ProductManagement = () => {
 
     setIsLoading(true);
     try {
-      // await dispatch(reject_product(currentProduct._id, sanitizedReason));
-      await dispatch(get_product());
-      toast({
-        title: "ปฏิเสธสินค้าเรียบร้อย",
-        description: `เหตุผล: ${sanitizedReason}`,
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
+      await dispatch(
+        reject_product({
+          id: currentProduct?._id,
+          sanitizedReason: sanitizedReason,
+        })
+      )
+        .unwrap()
+        .then(async (res) => {
+          toast({
+            title: "ປະຕິເສດສິນຄ້າແລ້ວ",
+            description: res.message || `ສຳເລັດ`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+          await dispatch(get_product());
+        })
+        .catch((err) => {
+          toast({
+            title: "ເກີດຂໍ້ຜິດພາດ",
+            description: err.message || `ກະລຸນາລອງໃໝ່`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+        });
       onRejectClose();
       setRejectReason("");
     } catch (error) {
-      console.log(error);
+
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถปฏิเสธสินค้าได้",
+        title: "ເກີດຂໍ້ຜິດພາດ",
+        description: error.message||"ບໍ່ສາມາດປະຕິເສດສິນຄ້າໄດ້ ກະລຸນາລອງໃໝ່",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -637,13 +605,25 @@ const ProductManagement = () => {
       if (!productId) return;
 
       try {
-        await dispatch(toggleFeatured(productId));
-        await dispatch(get_product());
+        await dispatch(toggleFeatured(productId))
+          .unwrap()
+          .then(async () => {
+            await dispatch(get_product());
+          })
+          .catch((err) => {
+            toast({
+              title: "ເກີດຂໍ້ຜິດພາດ",
+              description: err.message || `ກະລຸນາລອງໃໝ່`,
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+              position: "top-right",
+            });
+          });
       } catch (error) {
-        console.log(error);
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถเปลี่ยนสถานะได้",
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: error.message ||"ບໍ່ສາມາດປ່ຽນສະຖານະໄດ້",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -661,10 +641,9 @@ const ProductManagement = () => {
         // await dispatch(toggle_status(productId));
         await dispatch(get_product());
       } catch (error) {
-        console.log(error);
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถเปลี่ยนสถานะได้",
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: error.message||"ບໍ່ສາມາດປ່ຽນສະຖານະໄດ້",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -679,39 +658,47 @@ const ProductManagement = () => {
       const count = selectedProducts.length;
       if (count === 0) {
         toast({
-          title: "กรุณาเลือกสินค้า",
+          title: "ກະລຸນາເລືອກສິນຄ້າ",
           status: "warning",
           duration: 3000,
           isClosable: true,
         });
         return;
       }
-
       setIsLoading(true);
       try {
         switch (action) {
           case BULK_ACTIONS.APPROVE:
-            // await dispatch(bulk_approve_products(selectedProducts));
-            toast({
-              title: `อนุมัติสินค้า ${count} รายการเรียบร้อย`,
-              status: "success",
-              duration: 3000,
-              isClosable: true,
-            });
+            await dispatch(
+              bulk_approve_products({ ids: selectedProducts, status: "access" })
+            );
+            await dispatch(get_product()),
+              toast({
+                title: `ອະນຸມັດສິນຄ້າ ${count} ລາຍການແລ້ວ`,
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
             break;
           case BULK_ACTIONS.DISABLE:
-            // await dispatch(bulk_disable_products(selectedProducts));
-            toast({
-              title: `ปิดการขายสินค้า ${count} รายการเรียบร้อย`,
-              status: "info",
-              duration: 3000,
-              isClosable: true,
-            });
+            await dispatch(
+              bulk_approve_products({
+                ids: selectedProducts,
+                status: "rejected",
+              })
+            );
+            await dispatch(get_product()),
+              toast({
+                title: `ປະຕິເສດທຸກສິນຄ້າ ${count} ລາຍການແລ້ວ`,
+                status: "info",
+                duration: 3000,
+                isClosable: true,
+              });
             break;
           case BULK_ACTIONS.EXPORT:
             // Implement export functionality
             toast({
-              title: `ส่งออกข้อมูลสินค้า ${count} รายการเรียบร้อย`,
+              title: `ສົ່ງອອກຂໍ້ມູນສິນຄ້າ ${count} ລາຍການແລ້ວ`,
               status: "success",
               duration: 3000,
               isClosable: true,
@@ -724,10 +711,10 @@ const ProductManagement = () => {
         setSelectedProducts([]);
         onBulkClose();
       } catch (error) {
-         console.log(error)
+
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถดำเนินการได้",
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description:error.message|| "ບໍ່ສາມາດດຳເນີນການໄດ້",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -765,15 +752,15 @@ const ProductManagement = () => {
     try {
       await dispatch(get_product());
       toast({
-        title: "รีเฟรชข้อมูลเรียบร้อย",
+        title: "refresh success",
         status: "success",
         duration: 2000,
         isClosable: true,
       });
     } catch (error) {
-       console.log(error)
+
       toast({
-        title: "ไม่สามารถรีเฟรชข้อมูลได้",
+        title: error.message||"ບໍ່ສາມາດລີເຟຮສໄດ້",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -811,9 +798,9 @@ const ProductManagement = () => {
       <Container maxW="full" p={6}>
         <Alert status="error">
           <AlertIcon />
-          <AlertTitle>เกิดข้อผิดพลาด!</AlertTitle>
+          <AlertTitle>ເກີດຂໍ້ຜິດພາດ!</AlertTitle>
           <AlertDescription>
-            ไม่สามารถโหลดข้อมูลสินค้าได้ กรุณาลองใหม่อีกครั้ง
+            ບໍ່ສາມາດໂຫລດຂໍ້ມູນໄດ້ ກະລຸນາລອງໃໝ່
           </AlertDescription>
         </Alert>
       </Container>
@@ -826,10 +813,10 @@ const ProductManagement = () => {
         {/* Header */}
         <Flex justify="space-between" align="center">
           <Box>
-            <Heading size="lg" mb={2}>
-              การจัดการสินค้า
+            <Heading fontFamily={"Noto Sans Lao, serif"} size="lg" mb={2}>
+              ການຈັດການສິນຄ້າ
             </Heading>
-            <Text color="gray.600">จัดการและอนุมัติสินค้าของผู้ขาย</Text>
+            <Text color="gray.600">ຈັດການແລະອະນຸມັດສິນຄ້າຂອງຜູ້ຂາຍ</Text>
           </Box>
           <HStack>
             <Button
@@ -839,7 +826,7 @@ const ProductManagement = () => {
               size="sm"
               variant="outline"
             >
-              รีเฟรช
+              refresh
             </Button>
           </HStack>
         </Flex>
@@ -847,32 +834,32 @@ const ProductManagement = () => {
         {/* Statistics */}
         <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={4}>
           <ProductStatsCard
-            label="สินค้าทั้งหมด"
+            label="ສິນຄ້າທັງໝົດ"
             value={stats.total}
             color="blue"
           />
           <ProductStatsCard
-            label="รอดำเนินการ"
+            label="ລໍຖ້າດຳເນີນການ"
             value={stats.pending}
             color="yellow"
           />
           <ProductStatsCard
-            label="อนุมัติแล้ว"
+            label="ອະນຸມັດແລ້ວ"
             value={stats.approved}
             color="green"
           />
           <ProductStatsCard
-            label="ถูกปฏิเสธ"
+            label="ຖືກປະຕິເສດ"
             value={stats.rejected}
             color="red"
           />
           <ProductStatsCard
-            label="สินค้าเด่น"
+            label="ສິນຄ້າເດ່ນ"
             value={stats.featured}
             color="purple"
           />
           <ProductStatsCard
-            label="สินค้าหมด"
+            label="ສິນຄ້າທັງໝົດ"
             value={stats.outOfStock}
             color="red"
           />
@@ -888,65 +875,67 @@ const ProductManagement = () => {
                     <Search size={20} />
                   </InputLeftElement>
                   <Input
-                    placeholder="ค้นหาสินค้า, แบรนด์..."
+                    placeholder="ຄົ້ນຫາສິນຄ້າ, ແບຣນ..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     maxLength={100}
                   />
                 </InputGroup>
+                <Flex>
+                  <Select
+                    placeholder="ໝວດໝູ່"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    minW="150px"
+                  >
+                    {categoryList?.map((cat) => (
+                      <option key={cat._id || cat.name} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </Select>
 
-                <Select
-                  placeholder="หมวดหมู่"
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  minW="150px"
-                >
-                  {categoryList?.map((cat) => (
-                    <option key={cat._id || cat.name} value={cat.name}>
-                      {cat.name}
+                  <Select
+                    placeholder="ຜູ້ຂາຍ"
+                    value={sellerFilter}
+                    onChange={(e) => setSellerFilter(e.target.value)}
+                    minW="150px"
+                  >
+                    {get_seller?.map((seller) => (
+                      <option key={seller._id} value={seller?.user_id}>
+                        {seller.store_name}
+                      </option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    placeholder="ສະຖານະ"
+                    value={accessFilter}
+                    onChange={(e) => setAccessFilter(e.target.value)}
+                    minW="150px"
+                  >
+                    <option value={ACCESS_STATUS.PROCESS}>
+                      ລໍຖ້າດຳເນີນການ
                     </option>
-                  ))}
-                </Select>
+                    <option value={ACCESS_STATUS.ACCESS}>ອະນຸມັດແລ້ວ</option>
+                    <option value={ACCESS_STATUS.REJECTED}>ຖືກປະຕິເສດ</option>
+                  </Select>
 
-                <Select
-                  placeholder="ผู้ขาย"
-                  value={sellerFilter}
-                  onChange={(e) => setSellerFilter(e.target.value)}
-                  minW="150px"
-                >
-                  {get_seller?.map((seller) => (
-                    <option
-                      key={seller._id || seller.store_name}
-                      value={seller.store_name}
-                    >
-                      {seller.store_name}
+                  <Select
+                    placeholder="ສະຖານະການຂາຍ"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    minW="150px"
+                  >
+                    <option value={PRODUCT_STATUS.AVAILABLE}>ພ້ອມຂາຍ</option>
+                    <option value={PRODUCT_STATUS.OUT_OF_STOCK}>
+                      ສິນຄ້າໝົດ
                     </option>
-                  ))}
-                </Select>
-
-                <Select
-                  placeholder="สถานะอนุมัติ"
-                  value={accessFilter}
-                  onChange={(e) => setAccessFilter(e.target.value)}
-                  minW="150px"
-                >
-                  <option value={ACCESS_STATUS.PROCESS}>รอดำเนินการ</option>
-                  <option value={ACCESS_STATUS.ACCESS}>อนุมัติแล้ว</option>
-                  <option value={ACCESS_STATUS.REJECTED}>ถูกปฏิเสธ</option>
-                </Select>
-
-                <Select
-                  placeholder="สถานะขาย"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  minW="150px"
-                >
-                  <option value={PRODUCT_STATUS.AVAILABLE}>พร้อมขาย</option>
-                  <option value={PRODUCT_STATUS.OUT_OF_STOCK}>สินค้าหมด</option>
-                  <option value={PRODUCT_STATUS.TEMPORARILY_UNAVAILABLE}>
-                    ปิดขายชั่วคราว
-                  </option>
-                </Select>
+                    <option value={PRODUCT_STATUS.TEMPORARILY_UNAVAILABLE}>
+                      ປິດຂາຍຊົ່ວຄາວ
+                    </option>
+                  </Select>
+                </Flex>
 
                 <Button
                   size="md"
@@ -954,7 +943,7 @@ const ProductManagement = () => {
                   onClick={clearFilters}
                   leftIcon={<X size={16} />}
                 >
-                  ล้างฟิลเตอร์
+                  ລ້າງຕົວກຣອງ
                 </Button>
               </HStack>
 
@@ -962,7 +951,7 @@ const ProductManagement = () => {
               <HStack w="full" justify="space-between">
                 <HStack>
                   <Text fontSize="sm" color="gray.600">
-                    เลือกแล้ว {selectedProducts.length} รายการ
+                    ເລືອກແລ້ວ {selectedProducts.length} ລາຍການ
                   </Text>
                   {selectedProducts.length > 0 && (
                     <Button
@@ -971,27 +960,27 @@ const ProductManagement = () => {
                       onClick={onBulkOpen}
                       isDisabled={isLoading}
                     >
-                      การดำเนินการแบบกลุ่ม
+                      ການດຳເນີນການແບບກຸ່ມ
                     </Button>
                   )}
                 </HStack>
                 <HStack>
-                  <Button
+                  {/* <Button
                     leftIcon={<Download size={16} />}
                     size="sm"
                     variant="outline"
                     isDisabled={isLoading}
                   >
-                    ส่งออก Excel
-                  </Button>
-                  <Button
+                    ສົ່ງອອກ Excel
+                  </Button> */}
+                  {/* <Button
                     leftIcon={<Upload size={16} />}
                     size="sm"
                     variant="outline"
                     isDisabled={isLoading}
                   >
-                    นำเข้าข้อมูล
-                  </Button>
+                    ນຳເຂົ້າຂໍ້ມູນ
+                  </Button> */}
                 </HStack>
               </HStack>
             </VStack>
@@ -1007,10 +996,10 @@ const ProductManagement = () => {
               <VStack spacing={4} py={8}>
                 <Package size={48} color="gray" />
                 <Text color="gray.500" fontSize="lg">
-                  ไม่พบสินค้าที่ตรงกับเงื่อนไขการค้นหา
+                  ບໍ່ພົບສິນຄ້າທີ່ກົງກັບຄົ້ນຫາ
                 </Text>
                 <Button onClick={clearFilters} variant="outline">
-                  ล้างฟิลเตอร์
+                  ລ້າງຕົວກຣອງ
                 </Button>
               </VStack>
             </CardBody>
@@ -1039,18 +1028,18 @@ const ProductManagement = () => {
                           aria-label="Select all products"
                         />
                       </Th>
-                      <Th>รูปสินค้า</Th>
-                      <Th>ชื่อสินค้า</Th>
-                      <Th>ผู้ขาย</Th>
-                      <Th>หมวดหมู่</Th>
-                      <Th>ราคา</Th>
-                      <Th>คงเหลือ</Th>
-                      <Th>ยอดขาย</Th>
-                      <Th>สถานะอนุมัติ</Th>
-                      <Th>สถานะขาย</Th>
-                      <Th>สินค้าเด่น</Th>
-                      <Th>วันที่เพิ่ม</Th>
-                      <Th>การดำเนินการ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ຮູບສິນຄ້າ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ຊື່ສິນຄ້າ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ຜູ້ຂາຍ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ໝວດໝູ່</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ລາຄາ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ຄົງເຫຼືອ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ຍອດຂາຍ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ສະຖານະອະນຸມັດ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ສະຖານະຂາຍ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ສິນຄ້າເດ່ນ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ວັນທີ່ເພີ່ມ</Th>
+                      <Th fontFamily={"Noto Sans Lao, serif"}>ການດຳເນີນການ</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -1069,7 +1058,7 @@ const ProductManagement = () => {
                         }}
                         onEdit={(product) => {
                           setCurrentProduct(product);
-                          onEditOpen();
+                          // onEditOpen();
                         }}
                         onPreview={(product) => {
                           setCurrentProduct(product);
@@ -1088,39 +1077,39 @@ const ProductManagement = () => {
 
         {/* Results Summary */}
         <Text textAlign="center" color="gray.600" fontSize="sm">
-          แสดง {filteredProducts.length} จาก {get_products?.length || 0} รายการ
+          ສະແດງ {filteredProducts.length} ຈາກ {get_products?.length || 0} ລາຍການ
         </Text>
       </VStack>
 
-      {/* Edit Product Modal */}
-      <Modal isOpen={isEditOpen} onClose={onEditClose} size="2xl">
+      {/* Edit Product Modal  ແກ້ໄຂສິນຄ້າ*/}
+      {/* <Modal isOpen={isEditOpen} onClose={onEditClose} size="2xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>แก้ไขข้อมูลสินค้า</ModalHeader>
+          <ModalHeader>ແກ້ໄຂຂໍ້ມູນສິນຄ້າ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {currentProduct && (
               <VStack spacing={4}>
                 <FormControl>
-                  <FormLabel>ชื่อสินค้า</FormLabel>
+                  <FormLabel>ຊື່ສິນຄ້າ</FormLabel>
                   <Input
                     defaultValue={currentProduct.name}
                     maxLength={100}
-                    placeholder="กรุณาระบุชื่อสินค้า"
+                    placeholder="ກະລຸນາລະບຸຊື້ສິນຄ້າ"
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>คำอธิบาย</FormLabel>
+                  <FormLabel>ຄຳອະທິບາຍ</FormLabel>
                   <Textarea
                     defaultValue={currentProduct.description}
                     maxLength={1000}
-                    placeholder="กรุณาระบุคำอธิบายสินค้า"
+                    placeholder="ກະລຸນາລະບຸຄຳອະທິບາຍສິນຄ້າ"
                     rows={4}
                   />
                 </FormControl>
                 <HStack w="full">
                   <FormControl>
-                    <FormLabel>ราคา (บาท)</FormLabel>
+                    <FormLabel>ລາຄາ (LAK)</FormLabel>
                     <NumberInput
                       defaultValue={currentProduct.price}
                       min={0}
@@ -1130,7 +1119,7 @@ const ProductManagement = () => {
                     </NumberInput>
                   </FormControl>
                   <FormControl>
-                    <FormLabel>ราคาลด (บาท)</FormLabel>
+                    <FormLabel>ລາຄາຫລຸດ (LAK)</FormLabel>
                     <NumberInput
                       defaultValue={currentProduct.discount_price}
                       min={0}
@@ -1142,7 +1131,7 @@ const ProductManagement = () => {
                 </HStack>
                 <HStack w="full">
                   <FormControl>
-                    <FormLabel>จำนวนคงเหลือ</FormLabel>
+                    <FormLabel>ຈຳນວນຄົງເຫຼືອ</FormLabel>
                     <NumberInput
                       defaultValue={currentProduct.stock}
                       min={0}
@@ -1152,9 +1141,9 @@ const ProductManagement = () => {
                     </NumberInput>
                   </FormControl>
                   <FormControl>
-                    <FormLabel>หมวดหมู่</FormLabel>
+                    <FormLabel>ໝວດໝູ່</FormLabel>
                     <Select defaultValue={currentProduct.categoryId?.name}>
-                      <option value="">เลือกหมวดหมู่</option>
+                      <option value="">ເລືອກໝວດໝູ່</option>
                       {categoryList?.map((cat) => (
                         <option key={cat._id || cat.name} value={cat.name}>
                           {cat.name}
@@ -1165,7 +1154,7 @@ const ProductManagement = () => {
                 </HStack>
                 <Stack direction="row" w="full">
                   <Checkbox defaultChecked={currentProduct.is_featured}>
-                    สินค้าเด่น
+                    ສິນຄ້າເດ່ນ
                   </Checkbox>
                 </Stack>
               </VStack>
@@ -1173,53 +1162,53 @@ const ProductManagement = () => {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onEditClose}>
-              ยกเลิก
+              ຍົກເລີກ
             </Button>
             <Button
               colorScheme="blue"
               onClick={onEditClose}
               isLoading={isLoading}
-              loadingText="กำลังบันทึก..."
+              loadingText="ກຳລັງບັນທຶກ..."
             >
-              บันทึก
+              ບັນທຶກ
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
+      </Modal> */}
 
       {/* Reject Product Modal */}
       <Modal isOpen={isRejectOpen} onClose={onRejectClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>ปฏิเสธสินค้า</ModalHeader>
+          <ModalHeader>ປະຕິເສດສິນຄ້າ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
               <Alert status="warning">
                 <AlertIcon />
                 <Box>
-                  <AlertTitle>คำเตือน!</AlertTitle>
+                  <AlertTitle>ຄຳເຕືອນ!</AlertTitle>
                   <AlertDescription>
-                    การปฏิเสธสินค้าจะส่งผลให้ผู้ขายไม่สามารถขายสินค้านี้ได้
+                    ການປະຕິເສດສິນຄ້າສົ່ງຜົນໃຫ້ຜູ້ຂາຍບໍ່ສາມາດຂາຍສິນຄ້ານີ້ົໄດ້
                   </AlertDescription>
                 </Box>
               </Alert>
-              <Text>กรุณาระบุเหตุผลในการปฏิเสธสินค้า:</Text>
+              <Text>ກະລຸນາລະບຸເຫດຜົນທີ່ປະຕິເສດສິນຄ້າ:</Text>
               <Textarea
-                placeholder="เหตุผลการปฏิเสธ (เช่น รูปภาพไม่ชัดเจน, ข้อมูลไม่ครบถ้วน, ฯลฯ)"
+                placeholder="ເຫດຜົນທີ່ປະຕິເສດສິນຄ້າ ...."
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 maxLength={500}
                 rows={4}
               />
               <Text fontSize="sm" color="gray.500" alignSelf="flex-end">
-                {rejectReason.length}/500 ตัวอักษร
+                {rejectReason.length}/500 ຕົວອັກສອນ
               </Text>
             </VStack>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onRejectClose}>
-              ยกเลิก
+              ຍົກເລີກ
             </Button>
             <Button
               colorScheme="red"
@@ -1228,9 +1217,9 @@ const ProductManagement = () => {
                 !rejectReason.trim() || rejectReason.trim().length < 10
               }
               isLoading={isLoading}
-              loadingText="กำลังปฏิเสธ..."
+              loadingText="ກຳລັງປະຕິເສດ..."
             >
-              ปฏิเสธ
+              ປະຕິເສດສິນຄ້າ
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1240,7 +1229,7 @@ const ProductManagement = () => {
       <Modal isOpen={isPreviewOpen} onClose={onPreviewClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>ตัวอย่างหน้าสินค้า</ModalHeader>
+          <ModalHeader>ຕົວຢ່າງສິນຄ້າ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {currentProduct && (
@@ -1256,17 +1245,19 @@ const ProductManagement = () => {
                     fallbackSrc="https://via.placeholder.com/300x300?text=No+Image"
                   />
                 </Box>
-                <Heading size="md">{currentProduct.name}</Heading>
+                <Heading fontFamily={"Noto Sans Lao, serif"} size="md">
+                  {currentProduct.name}
+                </Heading>
                 <Text color="gray.600" fontSize="sm">
-                  {currentProduct.description || "ไม่มีคำอธิบาย"}
+                  {currentProduct.description || "ບໍ່ມີຄຳອະທິບາຍ"}
                 </Text>
                 <HStack spacing={3}>
                   <Text fontSize="2xl" fontWeight="bold" color="green.600">
-                    ฿{currentProduct.price?.toLocaleString() || 0}
+                    LAK {currentProduct.price?.toLocaleString() || 0}
                   </Text>
                   {currentProduct.discount_price && (
                     <Text textDecoration="line-through" color="gray.500">
-                      ฿{currentProduct.discount_price.toLocaleString()}
+                      LAK {currentProduct.discount_price.toLocaleString()}
                     </Text>
                   )}
                 </HStack>
@@ -1278,28 +1269,28 @@ const ProductManagement = () => {
                   </Text>
                 </HStack>
                 <Badge colorScheme="blue">
-                  {currentProduct.categoryId?.name || "ไม่มีหมวดหมู่"}
+                  {currentProduct.categoryId?.name || "ບໍ່ມີໝວດໝູ່"}
                 </Badge>
                 <VStack align="start" spacing={2}>
                   <Text>
-                    <strong>ผู้ขาย:</strong>{" "}
+                    <strong>ຜູ້ຂາຍ:</strong>{" "}
                     {currentProduct.user_id?.username || "N/A"}
                   </Text>
                   <Text>
-                    <strong>คงเหลือ:</strong> {currentProduct.stock || 0} ชิ้น
+                    <strong>ຄົງເຫຼືອ:</strong> {currentProduct.stock || 0} ອັນ
                   </Text>
                   <Text>
-                    <strong>ยอดขาย:</strong> {currentProduct.sold_count || 0}{" "}
-                    ชิ้น
+                    <strong>ຍອດຂາຍ:</strong> {currentProduct.sold_count || 0}{" "}
+                    ອັນ
                   </Text>
                   <Text>
-                    <strong>แบรนด์:</strong> {currentProduct.brand || "ไม่ระบุ"}
+                    <strong>ແບຣນ:</strong> {currentProduct.brand || "ບໍ່ລະບຸ"}
                   </Text>
                 </VStack>
                 {currentProduct.tags && currentProduct.tags.length > 0 && (
                   <HStack spacing={2} flexWrap="wrap">
                     <Text fontSize="sm" fontWeight="medium">
-                      แท็ก:
+                      ແທ໋ກ:
                     </Text>
                     {currentProduct.tags.map((tag, index) => (
                       <Badge key={index} variant="outline" colorScheme="gray">
@@ -1312,7 +1303,7 @@ const ProductManagement = () => {
             )}
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onPreviewClose}>ปิด</Button>
+            <Button onClick={onPreviewClose}>ປິດ</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -1321,20 +1312,20 @@ const ProductManagement = () => {
       <Modal isOpen={isBulkOpen} onClose={onBulkClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>การดำเนินการแบบกลุ่ม</ModalHeader>
+          <ModalHeader>ການດຳເນີນການແບບກຸ່ມ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
               <Alert status="info">
                 <AlertIcon />
                 <Box>
-                  <AlertTitle>ข้อมูล</AlertTitle>
+                  <AlertTitle>ຂໍ້ມູນ</AlertTitle>
                   <AlertDescription>
-                    คุณได้เลือกสินค้า {selectedProducts.length} รายการ
+                    ເຈົ້າໄດ້ເລືອກ {selectedProducts.length} ລາຍການ
                   </AlertDescription>
                 </Box>
               </Alert>
-              <Text>เลือกการดำเนินการที่ต้องการ:</Text>
+              <Text>ເລືອກດຳເນີນການ:</Text>
               <VStack w="full" spacing={3}>
                 <Button
                   w="full"
@@ -1344,7 +1335,7 @@ const ProductManagement = () => {
                   isDisabled={isLoading}
                   size="lg"
                 >
-                  อนุมัติทั้งหมด
+                  ອະນຸມັດທັງໝົດ
                 </Button>
                 <Button
                   w="full"
@@ -1354,7 +1345,7 @@ const ProductManagement = () => {
                   isDisabled={isLoading}
                   size="lg"
                 >
-                  ปิดการขายทั้งหมด
+                  ປະຕິເສດທຸກສິນຄ້າທັງໝົດ
                 </Button>
                 <Button
                   w="full"
@@ -1364,7 +1355,7 @@ const ProductManagement = () => {
                   isDisabled={isLoading}
                   size="lg"
                 >
-                  ส่งออกข้อมูล
+                  ສົ່ງອອກຂໍ້ມູນ
                 </Button>
               </VStack>
             </VStack>
@@ -1375,7 +1366,7 @@ const ProductManagement = () => {
               onClick={onBulkClose}
               isDisabled={isLoading}
             >
-              ยกเลิก
+              ຍົກເລີກ
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -12,28 +12,41 @@ export async function registerPush(userId) {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") return null;
 
-  const registration = await navigator.serviceWorker.register("/sw.js");
-  const existingSubscription = await registration.pushManager.getSubscription();
+  try {
+    // Register service worker (ครั้งเดียวพอ)
+    const registration = await navigator.serviceWorker.register("/sw.js");
+    await navigator.serviceWorker.ready;
 
-  if (existingSubscription) {
-    console.log("🔁 Already subscribed:", existingSubscription);
-    return existingSubscription;
-  }
+    // Check existing subscription
+    let subscription = await registration.pushManager.getSubscription();
 
-  const serverKey = urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY);
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: serverKey,
-  });
+    if (!subscription) {
+      // ไม่มี subscription เดิม → สร้างใหม่
+      const serverKey = urlBase64ToUint8Array(
+        import.meta.env.VITE_VAPID_PUBLIC_KEY
+      );
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: serverKey,
+      });
+      console.log("✅ New subscription created");
+    } else {
+      console.log("🔁 Reusing existing subscription");
+    }
 
-  if (!socket.connected) {
-    console.warn("⚠️ Socket not connected yet");
+    // ส่ง subscription ไป backend
+    if (socket.connected) {
+      socket.emit("register-subscription", { userId, subscription });
+    }
+    // else {
+    //   console.warn("⚠️ Socket not connected - subscription not sent");
+    // }
+
     return subscription;
+  } catch (error) {
+    console.error("❌ Error during push registration:", error);
+    return null;
   }
-
-  socket.emit("register-subscription", { userId, subscription });
-  console.log("✅ New subscription:", subscription, userId);
-  return subscription;
 }
 
 function urlBase64ToUint8Array(base64String) {

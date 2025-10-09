@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -25,7 +25,6 @@ import {
   Icon,
   useToast,
   Spinner,
-  Divider,
   useColorModeValue,
 } from "@chakra-ui/react";
 import {
@@ -35,16 +34,11 @@ import {
   FaPhone,
   FaEye,
   FaEyeSlash,
-  FaGoogle,
-  FaFacebook,
   FaShoppingCart,
 } from "react-icons/fa";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  messageClear,
-  seller_register,
-} from "../../hooks/reducer/auth_reducer";
-import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+// import { useNavigate } from "react-router-dom";
+import { seller_register } from "../../hooks/reducer/auth_reducer";
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
     username: "",
@@ -55,13 +49,13 @@ const RegisterPage = () => {
     agreeTerms: false,
   });
   const dispatch = useDispatch();
-  const { successMessage, errorMessage } = useSelector((state) => state?.auth);
+  // const { successMessage, errorMessage } = useSelector((state) => state?.auth);
+  // const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
-  const navigate = useNavigate();
   // Password strength calculation
   const getPasswordStrength = (password) => {
     let strength = 0;
@@ -83,10 +77,10 @@ const RegisterPage = () => {
   };
 
   const getStrengthText = (strength) => {
-    if (strength <= 25) return "อ่อน";
-    if (strength <= 50) return "ปานกลาง";
-    if (strength <= 75) return "ดี";
-    return "แข็งแกร่ง";
+    if (strength <= 25) return "ອ່ອນ";
+    if (strength <= 50) return "ປານກາງ";
+    if (strength <= 75) return "ດີ";
+    return "ແຂງແຮງ";
   };
 
   // Validation
@@ -94,36 +88,36 @@ const RegisterPage = () => {
     const newErrors = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = "กรุณากรอกชื่อเต็ม";
+      newErrors.username = "ກະລຸນາລະບຸຊື່ເຕັມ";
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = "กรุณากรอกอีเมล";
+      newErrors.email = "ກະລຸນາລະບຸອິເມວ";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "รูปแบบอีเมลไม่ถูกต้อง";
+      newErrors.email = "ຮູບແບອີເມວບໍ່ຖືກຕ້ອງ";
     }
 
     if (!formData.password) {
-      newErrors.password = "กรุณากรอกรหัสผ่าน";
+      newErrors.password = "ກະລຸນາລະບຸລະຫັດຜ່ານ";
     } else if (formData.password.length < 8) {
-      newErrors.password = "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร";
+      newErrors.password = "ລະຫັດຜ່ານຢ່າງໜ້ອຍ 8 ຕົວອັກສອນ";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "กรุณายืนยันรหัสผ่าน";
+      newErrors.confirmPassword = "ກະລຸນາລະບຸລະຫັດຜ່ານ";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "รหัสผ่านไม่ตรงกัน";
+      newErrors.confirmPassword = "ລະຫັດບໍ່ກົງກັນ";
     }
 
     if (
       formData.phone &&
       !/^[0-9]{10}$/.test(formData.phone.replace(/[^0-9]/g, ""))
     ) {
-      newErrors.phone = "เบอร์โทรศัพท์ไม่ถูกต้อง";
+      newErrors.phone = "ເບີໂທລະສັບບໍ່ຖືກຕ້ອງ";
     }
 
     if (!formData.agreeTerms) {
-      newErrors.agreeTerms = "กรุณายอมรับข้อตกลงการใช้งาน";
+      newErrors.agreeTerms = "ກະລຸນາຍ້ອມຮັບຂໍ້ຕົກແລະການໃຊ້ງານ";
     }
 
     setErrors(newErrors);
@@ -166,9 +160,16 @@ const RegisterPage = () => {
         phone: "",
         agreeTerms: false,
       });
+      toast({
+        title: "ລົງທະບຽນສຳເລັດ",
+        description: "ຍິນດີຕ້ອນຮັບ",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
     } catch (error) {
       toast({
-        title: "เกิดข้อผิดพลาด",
+        title: "ເກິດຂໍ້ຜິດພາດ",
         description: error?.data?.error?.message,
         status: "error",
         duration: 5000,
@@ -190,28 +191,28 @@ const RegisterPage = () => {
   // };
 
   const cardBg = useColorModeValue("white", "gray.800");
-  useEffect(() => {
-    if (errorMessage) {
-      toast({
-        title: "Error",
-        description: errorMessage,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      dispatch(messageClear());
-    }
-    if (successMessage) {
-      toast({
-        title: "Success",
-        description: successMessage,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      dispatch(messageClear());
-    }
-  }, [errorMessage, successMessage, dispatch, navigate, toast]);
+  // useEffect(() => {
+  //   if (errorMessage) {
+  //     toast({
+  //       title: "Error",
+  //       description: errorMessage,
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     dispatch(messageClear());
+  //   }
+  //   if (successMessage) {
+  //     toast({
+  //       title: "Success",
+  //       description: successMessage,
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     dispatch(messageClear());
+  //   }
+  // }, [errorMessage, successMessage, dispatch, navigate, toast]);
   return (
     <>
       <Box minH="100vh" py={{ base: 8, md: 16 }}>
@@ -232,11 +233,15 @@ const RegisterPage = () => {
             >
               <VStack spacing={4}>
                 <Icon as={FaShoppingCart} boxSize={12} />
-                <Heading size="lg" fontWeight="bold">
-                  Register Myshop
+                <Heading
+                  fontFamily={"Noto Sans Lao, serif"}
+                  size="lg"
+                  fontWeight="bold"
+                >
+                  ຍິນດີຕ້ອນຮັບສູ່ My Shop
                 </Heading>
                 <Text fontSize="sm" opacity={0.9}>
-                  Register for seller partner
+                  ລົງທະບຽນເພື່ອຮ່ວມພື້ນທີ່ຂາຍສິນຄ້າ
                 </Text>
               </VStack>
             </CardHeader>
@@ -245,14 +250,14 @@ const RegisterPage = () => {
               <VStack spacing={6} as="form" onSubmit={handleSubmit}>
                 {/* Full Name */}
                 <FormControl isInvalid={errors.username}>
-                  <FormLabel>ชื่อเต็ม</FormLabel>
+                  <FormLabel>ຊື່ ແລະ ນາມສະກຸນ</FormLabel>
                   <InputGroup>
                     <InputLeftElement>
                       <Icon as={FaUser} color="gray.400" />
                     </InputLeftElement>
                     <Input
                       name="username"
-                      placeholder="กรอกชื่อเต็มของคุณ"
+                      placeholder="ຊື່ ແລະ ນາມສະກຸນ"
                       value={formData.username}
                       onChange={handleInputChange}
                       borderRadius="lg"
@@ -264,7 +269,7 @@ const RegisterPage = () => {
                 <Flex>
                   {/* Email */}
                   <FormControl paddingRight={4} isInvalid={errors.email}>
-                    <FormLabel>อีเมล</FormLabel>
+                    <FormLabel>ອີເມວ</FormLabel>
                     <InputGroup>
                       <InputLeftElement>
                         <Icon as={FaEnvelope} color="gray.400" />
@@ -283,7 +288,7 @@ const RegisterPage = () => {
 
                   {/* Password */}
                   <FormControl isInvalid={errors.password}>
-                    <FormLabel>รหัสผ่าน</FormLabel>
+                    <FormLabel>ລະຫັດຜ່ານ</FormLabel>
                     <InputGroup>
                       <InputLeftElement>
                         <Icon as={FaLock} color="gray.400" />
@@ -291,7 +296,7 @@ const RegisterPage = () => {
                       <Input
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="กรอกรหัสผ่าน"
+                        placeholder="ລະບຸລະຫັດຜ່ານ"
                         value={formData.password}
                         onChange={handleInputChange}
                         borderRadius="lg"
@@ -319,7 +324,7 @@ const RegisterPage = () => {
                           color={`${getStrengthColor(passwordStrength)}.500`}
                           mt={1}
                         >
-                          ความแข็งแกร่ง: {getStrengthText(passwordStrength)}
+                          ຄວາມແຂງແຮງ: {getStrengthText(passwordStrength)}
                         </Text>
                       </Box>
                     )}
@@ -333,7 +338,7 @@ const RegisterPage = () => {
                     paddingRight={4}
                     isInvalid={errors.confirmPassword}
                   >
-                    <FormLabel>ยืนยันรหัสผ่าน</FormLabel>
+                    <FormLabel>ຢືນຢັນລະຫັດຜ່ານ</FormLabel>
                     <InputGroup>
                       <InputLeftElement>
                         <Icon as={FaLock} color="gray.400" />
@@ -341,7 +346,7 @@ const RegisterPage = () => {
                       <Input
                         name="confirmPassword"
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="ยืนยันรหัสผ่าน"
+                        placeholder="ຢືນຢັນລະຫັດຜ່ານ"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         borderRadius="lg"
@@ -365,14 +370,14 @@ const RegisterPage = () => {
 
                   {/* Phone Number */}
                   <FormControl isInvalid={errors.phone}>
-                    <FormLabel>เบอร์โทรศัพท์</FormLabel>
+                    <FormLabel>ເບີີໂທລະສັບ</FormLabel>
                     <InputGroup>
                       <InputLeftElement>
                         <Icon as={FaPhone} color="gray.400" />
                       </InputLeftElement>
                       <Input
                         name="phone"
-                        placeholder="08x-xxx-xxxx"
+                        placeholder="20XXXX"
                         value={formData.phone}
                         onChange={handleInputChange}
                         borderRadius="lg"
@@ -391,21 +396,21 @@ const RegisterPage = () => {
                     colorScheme="purple"
                   >
                     <Text fontSize="sm">
-                      ฉันยอมรับ{" "}
+                      ຂ້ອຍຍອມຮັບ{" "}
                       <Link
                         color="purple.500"
                         href="#"
                         textDecoration="underline"
                       >
-                        ข้อตกลงการใช้งาน
+                        ຂໍ້ຕົກລົງການໃຊ້ງານ
                       </Link>{" "}
-                      และ{" "}
+                      ແລະ{" "}
                       <Link
                         color="purple.500"
                         href="#"
                         textDecoration="underline"
                       >
-                        นโยบายความเป็นส่วนตัว
+                        ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ
                       </Link>
                     </Text>
                   </Checkbox>
@@ -420,7 +425,7 @@ const RegisterPage = () => {
                   w="full"
                   borderRadius="lg"
                   isLoading={isLoading}
-                  loadingText="กำลังสมัครสมาชิก..."
+                  loadingText="ກຳລັງສະໝັກສະມາຊິກ..."
                   spinner={<Spinner />}
                   bgGradient="linear(to-r, purple.500, pink.500)"
                   _hover={{
@@ -430,18 +435,18 @@ const RegisterPage = () => {
                   }}
                   transition="all 0.3s ease"
                 >
-                  สมัครสมาชิก
+                  ສະໝັກສະມາຊິກ
                 </Button>
 
                 {/* Login Link */}
                 <Text fontSize="sm" color="gray.600" textAlign="center">
-                  มีบัญชีอยู่แล้ว?{" "}
+                  ມີບັນຊີຢູ່ແລ້ວ?{" "}
                   <Link
                     href={"/login"}
                     color="purple.500"
                     fontWeight="semibold"
                   >
-                    เข้าสู่ระบบ
+                    ເຂົ້າສູລະບົບ
                   </Link>
                 </Text>
               </VStack>

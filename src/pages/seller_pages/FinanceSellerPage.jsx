@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Box,
   Flex,
@@ -30,9 +30,7 @@ import {
   AlertDescription,
   VStack,
   HStack,
-  Divider,
   Container,
-  Switch,
   FormControl,
   FormLabel,
   Modal,
@@ -45,170 +43,261 @@ import {
   useDisclosure,
   Textarea,
   useToast,
+  Spinner,
+  Center,
 } from "@chakra-ui/react";
+import { Download, Search, Edit, Send } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { Download, Search, Sun, Moon, Edit, Send } from "lucide-react";
+  getAnalytics,
+  getFinanceSummary,
+  getTransactions,
+  withdraw,
+  withdraw_requests,
+} from "../../hooks/reducer/finance_reducer/finance";
+import SalesBarChart from "./SalesBarChart";
+import { get_user } from "../../hooks/reducer/auth_reducer";
+import { RepeatIcon } from "@chakra-ui/icons";
+// Constants
+const TIME_FILTER_OPTIONS = [
+  { value: "today", label: "ມື້ນີ້" },
+  { value: "7d", label: "7 ວັນທີ່ຜ່ານມາ" },
+  { value: "30d", label: "30 ວັນທີ່ຜ່ານມາ" },
+  { value: "month", label: "ເດືອນນີ້" },
+  { value: "year", label: "ປີນີ້" },
+];
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "ທຸກສະຖານະ" },
+  { value: "success", label: "ຖອນສຳເລັດ" },
+  { value: "pending", label: "ລໍຖ້າເນິນການ" },
+  { value: "rejected", label: "ປະຕິເສດ ກະລຸນາຕິດຕໍ່ຝ່າຍສະໜັບສະໜູນ" },
+];
+
+const TRANSACTION_TYPES = {
+  pending: "ລໍຖ້າດຳເນີນການ",
+  success: "ຖອນສຳເລັດ",
+  rejected: "ປະຕິເສດ ກະລຸນາຕິດຕໍ່ຝ່າຍສະໜັບສະໜູນ",
+};
+
+const STATUS_COLORS = {
+  success: "green",
+  pending: "orange",
+  rejected: "red",
+};
 
 const FinanceSellerPage = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
-
+  // State management
   const [timeFilter, setTimeFilter] = useState("30d");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawNote, setWithdrawNote] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Hooks
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+  const dispatch = useDispatch();
+
+  // Redux state
+  const { financeSummary, analytics, isLoading: reduxLoading } = useSelector(
+    (state) => state.finance
+  );
+  const { sellerInfo_data } = useSelector((state) => state.auth);
+  const { get_withdraw_requests } = useSelector((state) => state.finance);
+  // Theme colors
   const cardBg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
 
-  // Mock data
-  const summaryData = {
-    totalSales: 150000,
-    netEarnings: 135000,
-    totalOrders: 245,
-    pendingPayout: 25000,
-    withdrawn: 110000,
-    growthRate: 12.5,
-    isPositive: true,
-  };
-
-  const chartData = [
-    { name: "จ", value: 4000 },
-    { name: "อ", value: 3000 },
-    { name: "พ", value: 5000 },
-    { name: "พฤ", value: 2780 },
-    { name: "ศ", value: 1890 },
-    { name: "ส", value: 2390 },
-    { name: "อา", value: 3490 },
-  ];
-
-  const transactions = [
-    {
-      id: 1,
-      date: "2024-07-20",
-      type: "ขาย",
-      amount: 1500,
-      status: "สำเร็จ",
-      note: "ขายสินค้า #12345",
-    },
-    {
-      id: 2,
-      date: "2024-07-19",
-      type: "ถอน",
-      amount: -5000,
-      status: "สำเร็จ",
-      note: "ถอนเงินเข้าบัญชี",
-    },
-    {
-      id: 3,
-      date: "2024-07-18",
-      type: "ขาย",
-      amount: 2300,
-      status: "สำเร็จ",
-      note: "ขายสินค้า #12346",
-    },
-    {
-      id: 4,
-      date: "2024-07-17",
-      type: "ขาย",
-      amount: 890,
-      status: "รอดำเนินการ",
-      note: "ขายสินค้า #12347",
-    },
-    {
-      id: 5,
-      date: "2024-07-16",
-      type: "ขาย",
-      amount: 3200,
-      status: "สำเร็จ",
-      note: "ขายสินค้า #12348",
-    },
-  ];
-
-  const bankAccount = {
-    bankName: "ธนาคารกสิกรไทย",
-    accountNumber: "123-4-56789-0",
-    accountName: "นายจอห์น โด",
-  };
-
-  const handleWithdraw = () => {
-    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
+  // Mock bank account data (should come from API/Redux in real app)
+  const bankAccount = useMemo(
+    () => ({
+      bankName: sellerInfo_data?.bank_name,
+      accountNumber: sellerInfo_data?.bank_account_number,
+      accountName: sellerInfo_data?.bank_account_name,
+    }),
+    [sellerInfo_data]
+  );
+  // Fetch data with proper error handling
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        dispatch(getFinanceSummary()),
+        dispatch(getTransactions()), ///statusFilter
+        dispatch(getAnalytics(timeFilter)),
+        dispatch(get_user()),
+        dispatch(withdraw_requests()),
+      ]);
+    } catch (error) {
+      console.error("Error fetching finance data:", error);
       toast({
-        title: "ข้อผิดพลาด",
-        description: "กรุณาระบุจำนวนเงินที่ต้องการถอน",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
         status: "error",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  }, [dispatch, timeFilter, toast]);
 
-    if (parseFloat(withdrawAmount) > summaryData.pendingPayout) {
-      toast({
-        title: "ข้อผิดพลาด",
-        description: "จำนวนเงินที่ต้องการถอนเกินยอดที่มี",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
+  // Effect for initial data fetch and filter changes
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    // Simulate sending withdraw request to admin
-    toast({
-      title: "ส่งคำขอเรียบร้อย",
-      description: `ส่งคำขอถอนเงิน ${parseFloat(
-        withdrawAmount
-      ).toLocaleString()} บาท ไปยังแอดมินเรียบร้อยแล้ว`,
-      status: "success",
-      duration: 5000,
-      isClosable: true,
-    });
+  // Utility functions
+  const formatCurrency = useCallback((amount) => {
+    if (typeof amount !== "number" || isNaN(amount)) return "฿0";
 
-    setWithdrawAmount("");
-    setWithdrawNote("");
-    onClose();
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("th-TH", {
+    return new Intl.NumberFormat("la-LA", {
       style: "currency",
-      currency: "THB",
+      currency: "LAK",
       minimumFractionDigits: 0,
     }).format(amount);
-  };
+  }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "สำเร็จ":
-        return "green";
-      case "รอดำเนินการ":
-        return "orange";
-      default:
-        return "gray";
+  // const getStatusColor = useCallback((status) => {
+  //   return STATUS_COLORS[status] || STATUS_COLORS.default;
+  // }, []);
+
+  const validateWithdrawAmount = useCallback(
+    (amount) => {
+      const numAmount = parseFloat(amount);
+      if (!amount || numAmount <= 0) {
+        return "ກະລຸນາລະບຸຈຳນວນເງິນທີ່ຕ້ອງການຖອນ";
+      }
+      if (numAmount > (financeSummary?.totalBalance.balance || 0)) {
+        return "ຈຳນວນທີ່ຕ້ອງການຖອນເງິນເກີນຈຳນວນທີ່ມີຢູ່";
+      }
+      return null;
+    },
+    [financeSummary?.totalBalance?.balance]
+  );
+
+  // Event handlers
+  const handleTimeFilterChange = useCallback((e) => {
+    setTimeFilter(e.target.value);
+  }, []);
+
+  const handleStatusFilterChange = useCallback((e) => {
+    setStatusFilter(e.target.value);
+  }, []);
+
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleWithdrawAmountChange = useCallback((e) => {
+    setWithdrawAmount(e.target.value);
+  }, []);
+
+  const handleWithdrawNoteChange = useCallback((e) => {
+    setWithdrawNote(e.target.value);
+  }, []);
+
+  const handleWithdraw = useCallback(async () => {
+    const validationError = validateWithdrawAmount(withdrawAmount);
+    if (validationError) {
+      toast({
+        title: "ເກີດຂໍ້ຜິພາດ",
+        description: validationError,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
     }
-  };
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesSearch =
-      transaction.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.type.includes(searchTerm);
-    const matchesStatus =
-      statusFilter === "all" || transaction.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+    setIsLoading(true);
+    try {
+      // In real app, this would be an API call
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      dispatch(
+        withdraw({
+          amount: withdrawAmount,
+          note: withdrawNote,
+        })
+      )
+        .then((res) => {
+          toast({
+            title: "ສົ່ງຄຳຂໍຖອນສຳເລັດ",
+            description: res.message || "ສົ່ງຄຳຂໍ້ສຳເລັດ",
+            status: "success",
+            duration: 5000,
+            isClosable: true,
+          });
+          dispatch(withdraw_requests());
+        })
+        .catch((error) => {
+          toast({
+            title: "ເກີດຂໍ້ຜິດພາດ",
+            description: error.message || "ບໍ່ສາມາດຖອນໄດ້ ກະລຸນາລອງໃໝ່",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        });
+
+      setWithdrawAmount("");
+      setWithdrawNote("");
+      onClose();
+
+      // Refresh data after successful withdrawal request
+      await fetchData();
+    } catch (error) {
+      toast({
+        title: "ເກີດຂໍ້ຜິພາດ",
+        description: error.message || "ບໍ່ສາມາດຖອນເງິນໄດ້ ກະລຸນາລອງໃໝ່",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    withdrawAmount,
+    validateWithdrawAmount,
+    toast,
+    onClose,
+    fetchData,
+    dispatch,
+    withdrawNote,
+  ]);
+
+  // Filtered transactions with memoization
+  const filteredTransactions = useMemo(() => {
+    if (!get_withdraw_requests?.data?.requests) return [];
+
+    return get_withdraw_requests?.data?.requests.filter((transaction) => {
+      const matchesSearch =
+        transaction.note?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transaction.status?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || transaction.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [get_withdraw_requests?.data?.requests, searchTerm, statusFilter]);
+
+  // Chart data with fallback
+  const chartData = analytics?.chartData || [];
+  // Loading state
+  if (isLoading || reduxLoading) {
+    return (
+      <Center h="200px">
+        <Spinner size="xl" color="blue.500" />
+      </Center>
+    );
+  }
 
   return (
-    <Box   p={4}>
+    <Box p={4} minH="100vh">
       <Container maxW="7xl">
         {/* Header */}
         <Flex
@@ -218,29 +307,50 @@ const FinanceSellerPage = () => {
           flexWrap="wrap"
           gap={4}
         >
-          <Heading size="xl" color="blue.600">
-            การเงินของผู้ขาย
+          <Heading
+            fontFamily={"Noto Sans Lao, serif"}
+            size="xl"
+            color="blue.600"
+          >
+            ການເງິນຂອງທ່ານ
           </Heading>
-
         </Flex>
 
         {/* Alert */}
-        <Alert
-          status="info"
-          borderRadius="md"
-          mb={6}
-          bg="blue.50"
-          borderColor="blue.200"
-        >
-          <AlertIcon color="blue.500" />
-          <Box>
-            <AlertTitle color="blue.800">แจ้งเตือน!</AlertTitle>
-            <AlertDescription color="blue.700">
-              คุณมีเงินรอถอน {formatCurrency(summaryData.pendingPayout)}
-            </AlertDescription>
-          </Box>
-        </Alert>
-
+        {financeSummary?.totalBalance?.balance > 0 && (
+          <Alert
+            status="info"
+            borderRadius="md"
+            mb={6}
+            bg="blue.50"
+            borderColor="blue.200"
+          >
+            <AlertIcon color="blue.500" />
+            <Box>
+              <AlertTitle color="blue.800">
+                ແຈ້ງເຕືອນ! ຫຼັງຈາກສົ່ງຄຳສັ່ງຖອນດຳເນີນການພາຍໃນ (1-2ວັນທຳການ){" "}
+              </AlertTitle>
+              <AlertDescription color="blue.700">
+                ທ່ານມີເງິນລໍຖ້າຖອນ{" "}
+                {formatCurrency(financeSummary?.totalBalance?.balance)}
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
+        <Box p={4} textAlign="center">
+          <Button
+            onClick={fetchData}
+            leftIcon={<RepeatIcon />}
+            colorScheme="teal"
+            variant="solid"
+            size="md"
+            borderRadius="xl"
+            _hover={{ transform: "scale(1.05)" }}
+            _active={{ transform: "scale(0.95)" }}
+          >
+            Refresh
+          </Button>
+        </Box>
         {/* Summary Cards */}
         <Grid
           templateColumns={{
@@ -254,15 +364,15 @@ const FinanceSellerPage = () => {
           <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
             <CardBody>
               <Stat>
-                <StatLabel color="gray.500">ยอดขายรวม</StatLabel>
+                <StatLabel color="gray.500">ຍອດລວມ</StatLabel>
                 <StatNumber color="blue.600">
-                  {formatCurrency(summaryData.totalSales)}
+                  {formatCurrency(financeSummary?.totalSales || 0)}
                 </StatNumber>
                 <StatHelpText>
                   <StatArrow
-                    type={summaryData.isPositive ? "increase" : "decrease"}
+                    type={financeSummary?.isPositive ? "increase" : "decrease"}
                   />
-                  {summaryData.growthRate}% จากเดือนที่แล้ว
+                  {financeSummary?.growthRate || 0}% ຈາກເດືອນທີ່ແລ້ວ
                 </StatHelpText>
               </Stat>
             </CardBody>
@@ -271,11 +381,11 @@ const FinanceSellerPage = () => {
           <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
             <CardBody>
               <Stat>
-                <StatLabel color="gray.500">รายได้สุทธิ</StatLabel>
+                <StatLabel color="gray.500">ລາຍໄດ້ສຸດທຶ</StatLabel>
                 <StatNumber color="green.600">
-                  {formatCurrency(summaryData.netEarnings)}
+                  {formatCurrency(financeSummary?.netEarnings || 0)}
                 </StatNumber>
-                <StatHelpText>หลังหักค่าคอมมิชชั่น</StatHelpText>
+                <StatHelpText>ຫຼັງຫັກຄ່າຄອມມິຊັ່ນ</StatHelpText>
               </Stat>
             </CardBody>
           </Card>
@@ -283,11 +393,11 @@ const FinanceSellerPage = () => {
           <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
             <CardBody>
               <Stat>
-                <StatLabel color="gray.500">จำนวนออเดอร์</StatLabel>
+                <StatLabel color="gray.500">ຈຳນວນອໍເດີ້</StatLabel>
                 <StatNumber color="purple.600">
-                  {summaryData.totalOrders.toLocaleString()}
+                  {(financeSummary?.totalOrders || 0).toLocaleString()}
                 </StatNumber>
-                <StatHelpText>ออเดอร์ทั้งหมด</StatHelpText>
+                <StatHelpText>ອໍເດີທັງໝົດ</StatHelpText>
               </Stat>
             </CardBody>
           </Card>
@@ -296,31 +406,66 @@ const FinanceSellerPage = () => {
             <CardBody>
               <Flex justify="space-between" align="center">
                 <Stat flex="1">
-                  <StatLabel color="gray.500">ยอดที่รอถอน</StatLabel>
+                  <StatLabel color="gray.500">ຍອດທີ່ລໍຖ້າຖອນ</StatLabel>
                   <StatNumber color="orange.600">
-                    {formatCurrency(summaryData.pendingPayout)}
+                    {formatCurrency(financeSummary?.totalBalance?.balance || 0)}
                   </StatNumber>
                 </Stat>
-                <Button
-                  colorScheme="green"
-                  leftIcon={<Download size={16} />}
-                  onClick={onOpen}
-                >
-                  ถอนเงิน
-                </Button>
               </Flex>
+              <Button
+                colorScheme="green"
+                leftIcon={<Download size={16} />}
+                onClick={onOpen}
+                isDisabled={
+                  !financeSummary?.totalBalance?.balance ||
+                  financeSummary?.totalBalance?.balance <= 0
+                }
+              >
+                ຖອນເງຶນ
+              </Button>
             </CardBody>
           </Card>
 
           <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
             <CardBody>
               <Stat>
-                <StatLabel color="gray.500">ยอดที่ถอนแล้ว</StatLabel>
+                <StatLabel color="gray.500">ຍອດທີ່ຖອນແລ້ວ</StatLabel>
                 <StatNumber color="gray.600">
-                  {formatCurrency(summaryData.withdrawn)}
+                  {formatCurrency(financeSummary?.withdrawn || 0)}
                 </StatNumber>
-                <StatHelpText>ถอนสำเร็จแล้ว</StatHelpText>
+                <StatHelpText>ຖອນສຳເລັດແລ້ວ</StatHelpText>
               </Stat>
+            </CardBody>
+          </Card>
+          <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
+            <CardHeader>
+              <Flex justify="space-between" align="center">
+                <Heading fontFamily={"Noto Sans Lao, serif"} size="md">
+                  ບັນຊີຮັບເງິນ
+                </Heading>
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              <VStack align="start" spacing={2}>
+                <Text>
+                  <Text as="span" fontWeight="semibold">
+                    ທະນາຄານ:
+                  </Text>{" "}
+                  {bankAccount.bankName}
+                </Text>
+                <Text>
+                  <Text as="span" fontWeight="semibold">
+                    ເລກທີ່ບັນຊີ:
+                  </Text>{" "}
+                  {bankAccount.accountNumber}
+                </Text>
+                <Text>
+                  <Text as="span" fontWeight="semibold">
+                    ຊື່ບັນຊີ:
+                  </Text>{" "}
+                  {bankAccount.accountName}
+                </Text>
+              </VStack>
             </CardBody>
           </Card>
         </Grid>
@@ -334,145 +479,141 @@ const FinanceSellerPage = () => {
               flexWrap="wrap"
               gap={4}
             >
-              <Heading size="md">สถิติรายได้</Heading>
+              <Heading size="md" fontFamily={"Noto Sans Lao, serif"}>
+                ສະຖິຕິການຂາຍ
+              </Heading>
               <Select
                 value={timeFilter}
-                onChange={(e) => setTimeFilter(e.target.value)}
+                onChange={handleTimeFilterChange}
                 w="auto"
+                minW="150px"
               >
-                <option value="today">วันนี้</option>
-                <option value="7d">7 วันที่ผ่านมา</option>
-                <option value="30d">30 วันที่ผ่านมา</option>
-                <option value="month">เดือนนี้</option>
-                <option value="year">ปีนี้</option>
+                {TIME_FILTER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </Select>
             </Flex>
           </CardHeader>
           <CardBody>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [formatCurrency(value), "รายได้"]}
-                />
-                <Bar dataKey="value" fill="#3182CE" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartData?.length > 0 ? (
+              <SalesBarChart chartData={chartData} />
+            ) : (
+              <Center h="300px">
+                <Text color="gray.500">ບໍ່ມີຂໍ້ມູນສະຖິຕິ</Text>
+              </Center>
+            )}
           </CardBody>
         </Card>
-
         {/* Bank Account Info */}
-        <Card bg={cardBg} borderColor={borderColor} borderWidth={1} mb={8}>
-          <CardHeader>
-            <Flex justify="space-between" align="center">
-              <Heading size="md">บัญชีรับเงิน</Heading>
-              <Button
-                leftIcon={<Edit size={16} />}
-                variant="outline"
-                colorScheme="blue"
-              >
-                แก้ไขบัญชี
-              </Button>
-            </Flex>
-          </CardHeader>
-          <CardBody>
-            <VStack align="start" spacing={2}>
-              <Text>
-                <strong>ธนาคาร:</strong> {bankAccount.bankName}
-              </Text>
-              <Text>
-                <strong>เลขที่บัญชี:</strong> {bankAccount.accountNumber}
-              </Text>
-              <Text>
-                <strong>ชื่อบัญชี:</strong> {bankAccount.accountName}
-              </Text>
-            </VStack>
-          </CardBody>
-        </Card>
 
         {/* Transaction Table */}
-        <Card bg={cardBg} borderColor={borderColor} borderWidth={1}>
+        <Card bg={cardBg} borderColor={borderColor} mb={8} borderWidth={2}>
           <CardHeader>
             <Flex
               justify="space-between"
               align="center"
               mb={4}
-              flexWrap="wrap"
+              flexWrap=""
               gap={4}
             >
-              <Heading size="md">ประวัติธุรกรรม</Heading>
-              <HStack spacing={4} flexWrap="wrap">
-                <Input
-                  placeholder="ค้นหาธุรกรรม..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  leftIcon={<Search size={16} />}
-                  maxW="200px"
-                />
+              <Heading fontFamily={"Noto Sans Lao, serif"} size="md">
+                ປະຫວັດທຸລະກຳ
+              </Heading>
+              <HStack spacing={4}>
+                <Box position="relative">
+                  <Input
+                    placeholder="ຄົ້ນຫາທຸລະກຳ..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    maxW="200px"
+                    pl={10}
+                  />
+                  <Box
+                    position="absolute"
+                    left={3}
+                    top="50%"
+                    transform="translateY(-50%)"
+                    color="gray.400"
+                  >
+                    <Search size={16} />
+                  </Box>
+                </Box>
                 <Select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
+                  onChange={handleStatusFilterChange}
                   maxW="150px"
                 >
-                  <option value="all">ทุกสถานะ</option>
-                  <option value="สำเร็จ">สำเร็จ</option>
-                  <option value="รอดำเนินการ">รอดำเนินการ</option>
+                  {STATUS_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </Select>
               </HStack>
             </Flex>
           </CardHeader>
           <CardBody overflowX="auto">
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>วันที่</Th>
-                  <Th>ประเภท</Th>
-                  <Th isNumeric>ยอดเงิน</Th>
-                  <Th>สถานะ</Th>
-                  <Th>หมายเหตุ</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {filteredTransactions.map((transaction) => (
-                  <Tr key={transaction.id}>
-                    <Td>
-                      {new Date(transaction.date).toLocaleDateString("th-TH")}
-                    </Td>
-                    <Td>
-                      <Badge
-                        colorScheme={
-                          transaction.type === "ขาย" ? "blue" : "purple"
-                        }
-                      >
-                        {transaction.type}
-                      </Badge>
-                    </Td>
-                    <Td
-                      isNumeric
-                      color={transaction.amount > 0 ? "green.600" : "red.600"}
-                    >
-                      {formatCurrency(Math.abs(transaction.amount))}
-                    </Td>
-                    <Td>
-                      <Badge colorScheme={getStatusColor(transaction.status)}>
-                        {transaction.status}
-                      </Badge>
-                    </Td>
-                    <Td>{transaction.note}</Td>
+            {filteredTransactions?.length > 0 ? (
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ວັນທີ່</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}> ສາຖານະ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"} isNumeric>
+                      ຍອດເງິນ
+                    </Th>
+
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ຫມາຍເຫດ</Th>
                   </Tr>
-                ))}
-              </Tbody>
-            </Table>
+                </Thead>
+                <Tbody>
+                  {filteredTransactions?.map((transaction) => (
+                    <Tr key={transaction._id}>
+                      <Td>
+                        {new Date(transaction.createdAt).toLocaleDateString(
+                          "th-TH",
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}
+                      </Td>
+                      <Td>
+                        <Badge colorScheme={STATUS_COLORS[transaction.status]}>
+                          {TRANSACTION_TYPES[transaction.status]}
+                        </Badge>
+                      </Td>
+                      <Td
+                        isNumeric
+                        color={transaction.amount > 0 ? "green.600" : "red.600"}
+                        fontWeight="medium"
+                      >
+                        {formatCurrency(Math.abs(transaction.amount))}
+                      </Td>
+
+                      <Td maxW="200px" isTruncated title={transaction.note}>
+                        {transaction.note || "-"}
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            ) : (
+              <Center py={8}>
+                <Text color="gray.500">ບໍ່ພົບທຸລະກຳ</Text>
+              </Center>
+            )}
           </CardBody>
         </Card>
 
         {/* Withdraw Modal */}
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={onClose} size="md">
           <ModalOverlay />
           <ModalContent>
-            <ModalHeader>ส่งคำขอถอนเงิน</ModalHeader>
+            <ModalHeader>ສົ່ງຄຳຂໍຖອນເງິນ</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <VStack spacing={4}>
@@ -480,52 +621,72 @@ const FinanceSellerPage = () => {
                   <AlertIcon />
                   <Box>
                     <AlertDescription>
-                      ยอดที่สามารถถอนได้:{" "}
-                      {formatCurrency(summaryData.pendingPayout)}
+                      ຍອດທີ່ສາມາດຖອນໄດ້:{" "}
+                      <Text as="span" fontWeight="semibold">
+                        {formatCurrency(
+                          financeSummary?.totalBalance?.balance || 0
+                        )}
+                      </Text>
                     </AlertDescription>
                   </Box>
                 </Alert>
 
-                <FormControl>
-                  <FormLabel>จำนวนเงินที่ต้องการถอน (บาท)</FormLabel>
+                <FormControl isRequired>
+                  <FormLabel>ຈຳນວນເງິນທີ່ຕ້ອງການຖອນ (LAK)</FormLabel>
                   <Input
                     type="number"
                     placeholder="0.00"
                     value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    onChange={handleWithdrawAmountChange}
+                    min="0"
+                    step="0.01"
+                    max={financeSummary?.totalBalance?.balance || 0}
                   />
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>หมายเหตุ (ไม่บังคับ)</FormLabel>
+                  <FormLabel>ໝາຍເຫດ (ທາງເລືອກ)</FormLabel>
                   <Textarea
-                    placeholder="ระบุหมายเหตุเพิ่มเติม..."
+                    placeholder="ລະບຸໝາຍເຫດເພີ່ມເຕີມ..."
                     value={withdrawNote}
-                    onChange={(e) => setWithdrawNote(e.target.value)}
+                    onChange={handleWithdrawNoteChange}
+                    rows={3}
                   />
                 </FormControl>
 
                 <Box w="100%" p={4} bg="gray.50" borderRadius="md">
-                  <Text fontSize="sm" color="gray.600" mb={2}>
-                    บัญชีที่จะโอนเงินเข้า:
+                  <Text
+                    fontSize="sm"
+                    color="gray.600"
+                    mb={2}
+                    fontWeight="semibold"
+                  >
+                    ບັນຊີທີ່ຈະໄດ້ຮັບເງິນ:
                   </Text>
-                  <Text fontSize="sm">{bankAccount.bankName}</Text>
-                  <Text fontSize="sm">{bankAccount.accountNumber}</Text>
-                  <Text fontSize="sm">{bankAccount.accountName}</Text>
+                  <Text fontSize="sm">{bankAccount?.bankName}</Text>
+                  <Text fontSize="sm">{bankAccount?.accountNumber}</Text>
+                  <Text fontSize="sm">{bankAccount?.accountName}</Text>
                 </Box>
               </VStack>
             </ModalBody>
 
             <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>
-                ยกเลิก
+              <Button
+                variant="ghost"
+                mr={3}
+                onClick={onClose}
+                isDisabled={isLoading}
+              >
+                ຍົກເລີກ
               </Button>
               <Button
                 colorScheme="green"
                 onClick={handleWithdraw}
                 leftIcon={<Send size={16} />}
+                isLoading={isLoading}
+                loadingText="กำลังส่ง..."
               >
-                ส่งคำขอ
+                ສົ່ງຄຳຂໍຖອນເງິນ
               </Button>
             </ModalFooter>
           </ModalContent>

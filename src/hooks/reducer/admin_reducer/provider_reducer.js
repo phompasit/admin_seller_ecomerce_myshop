@@ -4,18 +4,11 @@ export const add_category = createAsyncThunk(
   "provider/add_category",
   async (categoryData, { rejectWithValue, fulfillWithValue }) => {
     try {
-      const { data } = await api.post(
-        "/admin/add-category",
-        categoryData,
-        {
-          withCredentials: true,
-        },
-        {}
-      );
-      console.log("Category added successfully:", data);
+      const { data } = await api.post("/admin/add-category", categoryData, {
+        withCredentials: true,
+      });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -28,10 +21,8 @@ export const get_category = createAsyncThunk(
       const { data } = await api.get("/admin/get-category", {
         withCredentials: true,
       });
-      console.log("Categories retrieved successfully:", data);
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -48,10 +39,8 @@ export const update_category = createAsyncThunk(
           withCredentials: true,
         }
       );
-      console.log("Category updated successfully:", data);
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -63,10 +52,9 @@ export const delete_category = createAsyncThunk(
       const { data } = await api.delete(`/admin/delete-category/${id}`, {
         withCredentials: true,
       });
-      console.log("Category deleted successfully:", data);
+
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -81,7 +69,6 @@ export const add_coupon = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -94,10 +81,9 @@ export const get_product = createAsyncThunk(
       const { data } = await api.get("/admin/get_products_admin", {
         withCredentials: true,
       });
-      console.log("Coupon added successfully:", data);
+
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -112,7 +98,6 @@ export const get_sellers = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -126,7 +111,6 @@ export const get_coupon = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -145,7 +129,6 @@ export const update_coupons = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -167,7 +150,6 @@ export const reject_seller = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -190,7 +172,6 @@ export const toggleFeatured = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -209,11 +190,135 @@ export const approve_seller = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
 );
+//update_seller_fee
+export const update_seller_fee = createAsyncThunk(
+  "provider/update_seller_fee",
+  async ({ id, fee_system, vat }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.patch(
+        `/admin/update_seller_fee/${id}`,
+        {
+          fee_system,
+          vat,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+///reject products ສິນຄ້າບໍ່ຜ່ານມາດຕະຖານກະລຸນາເພີ່ມຂໍ້ມູນໃຫ້ຄົບຖ້ວນ
+export const reject_product = createAsyncThunk(
+  "provider/reject_product",
+  async ({ id, sanitizedReason }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.patch(
+        `/admin/reject_products/${id}`,
+        { sanitizedReason },
+        {
+          withCredentials: true,
+        }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+///edit seller ແກ້ໄຂໂປຣໄຟລ User Model ກໍລະນີ້ທີ່ ຜູ້ຂາຍຕ້ອງການປ່ຽນ
+export const edit_update_user = createAsyncThunk(
+  "provider/edit_update_user",
+  async (formData, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.patch(
+        `/admin/edit_update_user/${formData.id}`,
+        {
+          username: formData.username,
+          phone: formData.phone,
+          email: formData.email,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+///bulk_approve_products
+export const bulk_approve_products = createAsyncThunk(
+  "provider/bulk_approve_products",
+  async ({ ids, status }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      // ถ้าเป็น array → join ด้วย ","
+      const idsParam = Array.isArray(ids) ? ids.join(",") : ids;
+
+      const { data } = await api.patch(
+        `/admin/bulk_approve_products/${idsParam}`,
+        { status: status },
+        { withCredentials: true }
+      );
+
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Error occurred" }
+      );
+    }
+  }
+);
+//get_order
+export const get_order_for = createAsyncThunk(
+  "provider/get_order_for",
+  async (_, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.get(`/admin/order`, {
+        withCredentials: true,
+      });
+
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Error occurred" }
+      );
+    }
+  }
+);
+///report_admin
+
+// ✅ วิธีที่ 2: ใช้ axios params (แนะนำวิธีนี้)
+export const report_admin = createAsyncThunk(
+  "provider/report_admin",
+  async (params = {}, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.get("/admin/report_admin", {
+        params: {
+          dateFilter: params.dateFilter || null,
+          startDate: params.startDate || null,
+          endDate: params.endDate || null,
+        },
+        withCredentials: true,
+      });
+
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: "Error occurred" }
+      );
+    }
+  }
+);
+
 export const provider_reducer = createSlice({
   name: "provider_reducer",
   initialState: {
@@ -225,6 +330,8 @@ export const provider_reducer = createSlice({
     get_seller: [],
     all_sellers: [],
     get_coupons: [],
+    get_order_admin: [],
+    report_admin_data: null,
   },
   reducers: {
     messageClear: (state) => {
@@ -351,6 +458,78 @@ export const provider_reducer = createSlice({
       .addCase(approve_seller.fulfilled, (state, action) => {
         state.loader = false;
         state.successMessage = action.payload.message;
+      })
+      //update_seller_fee
+      .addCase(update_seller_fee.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(update_seller_fee.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(update_seller_fee.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      ///reject_product
+      .addCase(reject_product.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(reject_product.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(reject_product.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      //edit_update_user
+      .addCase(edit_update_user.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(edit_update_user.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(edit_update_user.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      ///bulk_approve_products
+      .addCase(bulk_approve_products.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(bulk_approve_products.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(bulk_approve_products.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      //get_order
+      .addCase(get_order_for.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(get_order_for.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(get_order_for.fulfilled, (state, action) => {
+        state.loader = false;
+        state.get_order_admin = action.payload.data;
+      })
+      ///report_admin
+      .addCase(report_admin.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(report_admin.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(report_admin.fulfilled, (state, action) => {
+        state.loader = false;
+        state.report_admin_data = action.payload.data;
       });
   },
 });

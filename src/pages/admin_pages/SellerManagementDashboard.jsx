@@ -59,11 +59,16 @@ import {
 } from "@chakra-ui/icons";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  edit_update_user,
   get_sellers,
   reject_seller,
+  update_seller_fee,
 } from "../../hooks/reducer/admin_reducer/provider_reducer";
-import { update_access_seller } from "../../hooks/reducer/auth_reducer";
-
+import {
+  statusActive_seller,
+  update_access_seller,
+} from "../../hooks/reducer/auth_reducer";
+import { MdBlock } from "react-icons/md";
 // Mock Redux functions for demo
 
 // Mock data
@@ -142,7 +147,11 @@ const EmptyState = ({ activeTab, searchTerm }) => {
       <VStack spacing={4}>
         {icon}
         <VStack spacing={2}>
-          <Heading size="md" color="gray.500">
+          <Heading
+            fontFamily={"Noto Sans Lao, serif"}
+            size="md"
+            color="gray.500"
+          >
             {title}
           </Heading>
           <Text color="gray.400" textAlign="center">
@@ -164,30 +173,29 @@ const SellerCard = ({ seller, onViewDetails, onApprove, onReject }) => {
       case "pending":
         return (
           <Badge colorScheme="yellow" variant="solid">
-            รอดำเนินการ
+            ລໍຖ້າດຳເນີນການ
           </Badge>
         );
       case "access":
         return (
           <Badge colorScheme="green" variant="solid">
-            ผ่านการยืนยัน
+            ຜ່ານການຢືນຢັນ
           </Badge>
         );
       case "rejected":
         return (
           <Badge colorScheme="red" variant="solid">
-            ไม่ผ่านการยืนยัน
+            ບໍ່ຜ່ານການຢືນຢັນ
           </Badge>
         );
       default:
         return (
           <Badge colorScheme="gray" variant="solid">
-            ไม่ทราบสถานะ
+            ບໍ່ຮູ້ສະຖານະ
           </Badge>
         );
     }
   };
-
   return (
     <Card
       bg={cardBg}
@@ -219,11 +227,16 @@ const SellerCard = ({ seller, onViewDetails, onApprove, onReject }) => {
           </Box>
 
           <VStack align="stretch" spacing={2}>
-            <Heading size="sm" color={textColor} noOfLines={1}>
-              {seller?.store_name || "ไม่ระบุชื่อร้าน"}
+            <Heading
+              fontFamily={"Noto Sans Lao, serif"}
+              size="sm"
+              color={textColor}
+              noOfLines={1}
+            >
+              {seller?.store_name || "ບໍ່ລະບຸชื่อร้าน"}
             </Heading>
             <Text fontSize="sm" color="gray.500">
-              รหัส: {seller?.store_code || "ไม่ระบุ"}
+              ລະຫັດຜູ້ຂາຍ: {seller?.store_code || "ບໍ່ລະບຸ"}
             </Text>
             <Text fontSize="sm" color={textColor} noOfLines={2}>
               {seller?.description || "ไม่มีรายละเอียด"}
@@ -232,14 +245,45 @@ const SellerCard = ({ seller, onViewDetails, onApprove, onReject }) => {
             <HStack spacing={2}>
               <PhoneIcon boxSize={3} color="gray.400" />
               <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                {seller?.user_id?.phone || "ไม่ระบุ"}
+                {seller?.user_id?.phone || "ບໍ່ລະບຸ"}
               </Text>
             </HStack>
 
             <HStack spacing={2}>
               <EmailIcon boxSize={3} color="gray.400" />
               <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                {seller?.user_id?.email || "ไม่ระบุ"}
+                {seller?.user_id?.email || "ບໍ່ລະບຸ"}
+              </Text>
+            </HStack>
+            <HStack
+              spacing={2}
+              px={3}
+              py={1}
+              borderRadius="full"
+              bg={seller?.user_id?.active === false ? "green.50" : "red.50"}
+              border="1px"
+              borderColor={
+                seller?.user_id?.active === false ? "green.200" : "red.200"
+              }
+              alignItems="center"
+            >
+              {seller?.user_id?.active === false ? (
+                <MdBlock size={14} color="green" />
+              ) : (
+                <MdBlock size={14} color="red" />
+              )}
+
+              <Text
+                fontSize="sm"
+                fontWeight="bold"
+                color={
+                  seller?.user_id?.active === false ? "green.600" : "red.600"
+                }
+                noOfLines={1}
+              >
+                {seller?.user_id?.active === false
+                  ? "ຍັງບໍ່ຖືກປິດກັ້ນ"
+                  : "ຖືກປິດກັ້ນຊົ່ວຄາວ"}
               </Text>
             </HStack>
           </VStack>
@@ -256,7 +300,7 @@ const SellerCard = ({ seller, onViewDetails, onApprove, onReject }) => {
               onClick={() => onViewDetails(seller)}
               flex={1}
             >
-              ดูข้อมูล
+              ເບີ່ງຂໍ້ມູນ
             </Button>
 
             {seller?.verificationStatus === "pending" && (
@@ -378,7 +422,7 @@ const SellerManagementDashboard = () => {
   useEffect(() => {
     dispatch(get_sellers());
   }, [dispatch]);
-  const { loader, successMessage, errorMessage, all_sellers } = useSelector(
+  const { loader, all_sellers } = useSelector(
     (state) => state.provider_reducer
   );
 
@@ -391,7 +435,92 @@ const SellerManagementDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(9);
   const [sellers, setSellers] = useState([]);
+  const [fee_system, setFee_system] = useState(0);
+  const [vat, setVat] = useState(0);
+  const {
+    isOpen: editOpen,
+    onOpen: editOnOpen,
+    onClose: editOnClose,
+  } = useDisclosure();
+  const [formData, setFormData] = useState();
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleEdit = (user) => {
+    editOnOpen();
+    setFormData({
+      id: user?.user_id?._id,
+      username: user?.user_id?.username || "",
+      phone: user?.user_id?.phone || "",
+      email: user?.user_id?.email || "",
+      role: user?.user_id?.role || "active",
+    });
+  };
+  const handleSave = async () => {
+    // คุณสามารถเชื่อม API ตรงนี้ได้
+    try {
+      await dispatch(edit_update_user(formData))
+        .unwrap()
+        .then((res) => {
+          toast({
+            title: "ສຳເລັດ",
+            description: res.message || `ສຳເລັດ`,
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+          dispatch(get_sellers());
+        })
+        .catch((err) => {
+          toast({
+            title: "ເກີດຂໍ້ຜິດພາດ",
+            description: err.message || `ກະລຸນາລອງໃໝ່`,
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+            position: "top-right",
+          });
+        });
+      editOnClose();
+    } catch (error) {
+      toast({
+        title: error.message || "ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+  const hanleFee = () => {
+    try {
+      const data = {
+        id: selectedSeller._id,
+        fee_system: fee_system,
+        vat: vat,
+      };
+      dispatch(update_seller_fee(data)).then(() => dispatch(get_sellers()));
+      toast({
+        title: "ອັບເດດສໍາເລັດ",
+        description: `ອັບເດດ ${
+          selectedSeller?.store_name || "Not have store Name"
+        } ແລ້ວ`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "ເກິດຂໍ້ຜິດພາດ",
+        description: error.message || "ກະລຸນາລອງໃໝ່",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
   // Modals
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
@@ -411,7 +540,6 @@ const SellerManagementDashboard = () => {
   useEffect(() => {
     setSellers(all_sellers || []);
   }, [all_sellers]);
-
   // Filtered sellers with pagination
   const { filteredSellers, paginatedSellers, totalPages } = useMemo(() => {
     const filtered =
@@ -449,7 +577,6 @@ const SellerManagementDashboard = () => {
       totalPages,
     };
   }, [sellers, searchTerm, activeTab, currentPage, itemsPerPage]);
-
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -463,8 +590,8 @@ const SellerManagementDashboard = () => {
     };
     dispatch(update_access_seller(data)).then(() => dispatch(get_sellers()));
     toast({
-      title: "อนุมัติสำเร็จ",
-      description: `อนุมัติร้านเรียบร้อยแล้ว`,
+      title: "ອະນຸມັດສຳເລັດ",
+      description: `ອະນຸມັດສຳເລັດແລ້ວ`,
       status: "success",
       duration: 3000,
       isClosable: true,
@@ -475,8 +602,8 @@ const SellerManagementDashboard = () => {
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
       toast({
-        title: "กรุณาระบุเหตุผล",
-        description: "กรุณาระบุเหตุผลในการปฏิเสธ",
+        title: "ກະລຸນາລະບຸເຫດຜົນ",
+        description: "ກະລຸນາລະບຸເຫດຜົນໃນການປະຕິເສດ",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -490,10 +617,10 @@ const SellerManagementDashboard = () => {
     };
     await dispatch(reject_seller(data)).then(() => dispatch(get_sellers()));
     toast({
-      title: "ปฏิเสธสำเร็จ",
-      description: `ปฏิเสธร้าน ${
+      title: "ປະຕິເສດສຳເລັດ",
+      description: `ປະຕິເສດຮ້ານ ${
         actionSeller?.store_name || "Not have store Name"
-      } เรียบร้อยแล้ว`,
+      } ແລ້ວ`,
       status: "info",
       duration: 3000,
       isClosable: true,
@@ -518,7 +645,28 @@ const SellerManagementDashboard = () => {
   const getStatusCount = (status) => {
     return sellers?.filter((s) => s.verificationStatus === status).length || 0;
   };
-
+  const handleToggleStatus = async (data) => {
+    try {
+      await dispatch(statusActive_seller(data?.user_id?._id)).then(() =>
+        dispatch(get_sellers())
+      );
+      toast({
+        title: "ສຳເລັດ",
+        description: `ບ໋ອກຊົ່ວຄາວສຳເລັດ`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "ເກີດຂໍ້ຜິດພາດ",
+        description: error.message || `ເກີດຂໍ້ຜິດພາດ ລອງໃໝ່ອີກຄັ້ງ`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
   return (
     <Box minH="100vh" bg={bgColor}>
       <Flex>
@@ -531,8 +679,13 @@ const SellerManagementDashboard = () => {
           minH="100vh"
           p={6}
         >
-          <Heading size="lg" mb={6} color={textColor}>
-            จัดการผู้ขาย
+          <Heading
+            fontFamily={"Noto Sans Lao, serif"}
+            size="lg"
+            mb={6}
+            color={textColor}
+          >
+            ຈັດການຜູ້ຂາຍ
           </Heading>
           <VStack align="stretch" spacing={3}>
             <Button
@@ -543,7 +696,7 @@ const SellerManagementDashboard = () => {
               px={4}
               py={6}
             >
-              <Text>ผู้ขายทั้งหมด</Text>
+              <Text>ຜູ້ຂາຍທັງໝົດ</Text>
               <Badge colorScheme="blue" variant="subtle">
                 {sellers?.length || 0}
               </Badge>
@@ -556,7 +709,7 @@ const SellerManagementDashboard = () => {
               px={4}
               py={6}
             >
-              <Text>รออนุมัติ</Text>
+              <Text>ລໍຖ້າອະນຸມັດ</Text>
               <Badge colorScheme="yellow" variant="subtle">
                 {getStatusCount("pending")}
               </Badge>
@@ -569,7 +722,7 @@ const SellerManagementDashboard = () => {
               px={4}
               py={6}
             >
-              <Text>ผ่านแล้ว</Text>
+              <Text>ຜ່ານແລ້ວ</Text>
               <Badge colorScheme="green" variant="subtle">
                 {getStatusCount("access")}
               </Badge>
@@ -582,7 +735,7 @@ const SellerManagementDashboard = () => {
               px={4}
               py={6}
             >
-              <Text>ไม่ผ่าน</Text>
+              <Text>ບໍ່ຜ່ານ</Text>
               <Badge colorScheme="red" variant="subtle">
                 {getStatusCount("rejected")}
               </Badge>
@@ -594,11 +747,15 @@ const SellerManagementDashboard = () => {
         <Box flex={1} p={6}>
           {/* Header */}
           <Flex mb={6} align="center" gap={4} wrap="wrap">
-            <Heading size="md" color={textColor}>
-              {activeTab === "all" && "ผู้ขายทั้งหมด"}
-              {activeTab === "pending" && "ผู้ขายรออนุมัติ"}
-              {activeTab === "access" && "ผู้ขายที่ผ่านการยืนยัน"}
-              {activeTab === "rejected" && "ผู้ขายที่ไม่ผ่านการยืนยัน"}
+            <Heading
+              fontFamily={"Noto Sans Lao, serif"}
+              size="md"
+              color={textColor}
+            >
+              {activeTab === "all" && "ຜູ້ຂາຍທັງໝົດ"}
+              {activeTab === "pending" && "ຜູ້ຂາຍລໍຖ້າອະນຸມັດ"}
+              {activeTab === "access" && "ຜູ້ຂາຍທີ່ຜ່ານການຢືນຢັນ"}
+              {activeTab === "rejected" && "ຜູ້ຂາຍທີ່ບໍ່ຜ່ານການຢືນຢັນ"}
             </Heading>
             <Spacer />
             <HStack spacing={4}>
@@ -608,17 +765,17 @@ const SellerManagementDashboard = () => {
                 w="auto"
                 size="sm"
               >
-                <option value={6}>6 รายการ/หน้า</option>
-                <option value={9}>9 รายการ/หน้า</option>
-                <option value={12}>12 รายการ/หน้า</option>
-                <option value={18}>18 รายการ/หน้า</option>
+                <option value={6}>6 ລາຍການ/ໜ້າ</option>
+                <option value={9}>9 ລາຍການ/ໜ້າ</option>
+                <option value={12}>12 ລາຍການ/ໜ້າ</option>
+                <option value={18}>18 ລາຍການ/ໜ້າ</option>
               </Select>
               <InputGroup maxW="320px">
                 <InputLeftElement pointerEvents="none">
                   <SearchIcon color="gray.300" />
                 </InputLeftElement>
                 <Input
-                  placeholder="ค้นหาชื่อร้าน, รหัสร้าน, หรือชื่อเจ้าของ..."
+                  placeholder="ຄົ້ນຫາຊື່ຮ້ານ,ລະຫັດຮ້ານ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -671,7 +828,7 @@ const SellerManagementDashboard = () => {
       <Modal isOpen={isOpen} onClose={onClose} size="6xl">
         <ModalOverlay />
         <ModalContent maxH="90vh" overflowY="auto">
-          <ModalHeader>รายละเอียดผู้ขาย</ModalHeader>
+          <ModalHeader>ລາຍລະອຽດຜູ້ຂາຍ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {selectedSeller && (
@@ -684,8 +841,12 @@ const SellerManagementDashboard = () => {
                   <Card>
                     <CardBody>
                       <VStack align="stretch" spacing={4}>
-                        <Heading size="md" color="blue.600">
-                          ข้อมูลร้านค้า
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="blue.600"
+                        >
+                          ຂໍ້ມູນຮ້ານຄ້າ
                         </Heading>
                         <Image
                           src={
@@ -702,35 +863,35 @@ const SellerManagementDashboard = () => {
                         <VStack align="stretch" spacing={2}>
                           <HStack>
                             <Text fontWeight="bold" minW="100px">
-                              ชื่อร้าน:
+                              ຊື່ຮ້ານຄ້າ:
                             </Text>
                             <Text>
-                              {selectedSeller?.store_name || "ไม่ระบุ"}
+                              {selectedSeller?.store_name || "ບໍ່ລະບຸ"}
                             </Text>
                           </HStack>
                           <HStack>
                             <Text fontWeight="bold" minW="100px">
-                              รหัสร้าน:
+                              ລະຫັດຮ້ານຄ້າ:
                             </Text>
                             <Text>
-                              {selectedSeller?.store_code || "ไม่ระบุ"}
+                              {selectedSeller?.store_code || "ບໍ່ລະບຸ"}
                             </Text>
                           </HStack>
                           <VStack align="stretch">
-                            <Text fontWeight="bold">ที่อยู่:</Text>
+                            <Text fontWeight="bold">ທີ່ຢູ່:</Text>
                             <Text pl={4}>
-                              {selectedSeller?.address || "ไม่ระบุ"}
+                              {selectedSeller?.address || "ບໍ່ລະບຸ"}
                             </Text>
                           </VStack>
                           <VStack align="stretch">
-                            <Text fontWeight="bold">รายละเอียด:</Text>
+                            <Text fontWeight="bold">ລາຍລະອຽດ:</Text>
                             <Text pl={4}>
-                              {selectedSeller?.description || "ไม่มีรายละเอียด"}
+                              {selectedSeller?.description || "ບໍ່ມີລາຍລະອຽດ"}
                             </Text>
                           </VStack>
                           <HStack>
                             <Text fontWeight="bold" minW="100px">
-                              สถานะ:
+                              ສະຖານະ:
                             </Text>
                             <Badge
                               colorScheme={
@@ -744,11 +905,11 @@ const SellerManagementDashboard = () => {
                               variant="solid"
                             >
                               {selectedSeller?.verificationStatus === "pending"
-                                ? "รอดำเนินการ"
+                                ? "ລໍຖ້າດຳເນີນການ"
                                 : selectedSeller?.verificationStatus ===
                                   "access"
-                                ? "ผ่านการยืนยัน"
-                                : "ไม่ผ่านการยืนยัน"}
+                                ? "ຜ່ານການຢືນຢັນ"
+                                : "ບໍ່ຜ່ານການຢືນຢັນ"}
                             </Badge>
                           </HStack>
                         </VStack>
@@ -762,15 +923,19 @@ const SellerManagementDashboard = () => {
                   <Card>
                     <CardBody>
                       <VStack align="stretch" spacing={4}>
-                        <Heading size="md" color="green.600">
-                          ข้อมูลบัญชีธนาคาร
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="green.600"
+                        >
+                          ຂໍ້ມູນບັນຊີທະນາຄານ
                         </Heading>
                         <Image
                           src={
                             selectedSeller?.bank_account_images ||
                             "https://via.placeholder.com/400x200?text=No+Bank+Image"
                           }
-                          alt="สมุดบัญชี"
+                          alt="ສະມຸດບັນຊີ"
                           borderRadius="md"
                           h="200px"
                           w="100%"
@@ -780,26 +945,26 @@ const SellerManagementDashboard = () => {
                         <VStack align="stretch" spacing={2}>
                           <HStack>
                             <Text fontWeight="bold" minW="120px">
-                              ธนาคาร:
+                              ທະນາຄານ:
                             </Text>
                             <Text>
-                              {selectedSeller?.bank_name || "ไม่ระบุ"}
+                              {selectedSeller?.bank_name || "ບໍ່ລະບຸ"}
                             </Text>
                           </HStack>
                           <HStack>
                             <Text fontWeight="bold" minW="120px">
-                              ชื่อบัญชี:
+                              ຊື່ບັນຊີທະນາຄານ:
                             </Text>
                             <Text>
-                              {selectedSeller?.bank_account_name || "ไม่ระบุ"}
+                              {selectedSeller?.bank_account_name || "ບໍ່ລະບຸ"}
                             </Text>
                           </HStack>
                           <HStack>
                             <Text fontWeight="bold" minW="120px">
-                              เลขบัญชี:
+                              ເລກບັນຊີທະນາຄານ:
                             </Text>
                             <Text>
-                              {selectedSeller?.bank_account_number || "ไม่ระบุ"}
+                              {selectedSeller?.bank_account_number || "ບໍ່ລະບຸ"}
                             </Text>
                           </HStack>
                         </VStack>
@@ -813,24 +978,28 @@ const SellerManagementDashboard = () => {
                   <Card>
                     <CardBody>
                       <VStack align="stretch" spacing={4}>
-                        <Heading size="md" color="purple.600">
-                          ข้อมูลการยืนยันตัวตน
+                        <Heading
+                          fontFamily={"Noto Sans Lao, serif"}
+                          size="md"
+                          color="purple.600"
+                        >
+                          ຂໍ້ມູນການຢືນຢັນຕົວຕົນ
                         </Heading>
 
                         {/* รูปภาพเอกสาร */}
                         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                           <Box>
                             <Text fontWeight="bold" mb={2}>
-                              รูปบัตรประชาชน
+                              ຮູບບັດເອກະສານ
                             </Text>
                             <Image
                               src={
                                 selectedSeller?.idCardImage ||
                                 "https://via.placeholder.com/400x200?text=No+ID+Card"
                               }
-                              alt="บัตรประชาชน"
+                              alt="ເອກະສານ"
                               borderRadius="md"
-                              h="200px"
+                              h="600px"
                               w="100%"
                               objectFit="cover"
                               fallbackSrc="https://via.placeholder.com/400x200?text=No+ID+Card"
@@ -838,7 +1007,7 @@ const SellerManagementDashboard = () => {
                           </Box>
                           <Box>
                             <Text fontWeight="bold" mb={2}>
-                              รูปถ่ายเซลฟี่
+                              ຮູບຖ່າຍເຊວຟີ່
                             </Text>
                             <Center>
                               <Image
@@ -846,7 +1015,7 @@ const SellerManagementDashboard = () => {
                                   selectedSeller?.selfieImage ||
                                   "https://via.placeholder.com/200x200?text=No+Selfie"
                                 }
-                                alt="เซลฟี่"
+                                alt="ເຊວຟີ່"
                                 borderRadius="full"
                                 h="200px"
                                 w="200px"
@@ -868,34 +1037,34 @@ const SellerManagementDashboard = () => {
                           <VStack align="stretch" spacing={2}>
                             <HStack>
                               <Text fontWeight="bold" minW="120px">
-                                ชื่อ-นามสกุล:
+                                ຊື່ ແລະ ນາມສະກຸນ:
                               </Text>
                               <Text>
                                 {selectedSeller?.verificationData?.fullName ||
-                                  "ไม่ระบุ"}
+                                  "ບໍ່ລະບຸ"}
                               </Text>
                             </HStack>
                             <HStack>
                               <Text fontWeight="bold" minW="120px">
-                                เลขบัตร:
+                                ເລກບັດ:
                               </Text>
                               <Text>
                                 {selectedSeller?.verificationData?.idNumber ||
-                                  "ไม่ระบุ"}
+                                  "ບໍ່ລະບຸ"}
                               </Text>
                             </HStack>
                             <HStack>
                               <Text fontWeight="bold" minW="120px">
-                                ประเภทเอกสาร:
+                                ປະເພດບັດ:
                               </Text>
                               <Text>
                                 {selectedSeller?.verificationData
                                   ?.documentType === "id_card"
-                                  ? "บัตรประชาชน"
+                                  ? "ບັດປະຈຳຕົວ"
                                   : selectedSeller?.verificationData
                                       ?.documentType === "passport"
-                                  ? "พาสปอร์ต"
-                                  : "ไม่ระบุ"}
+                                  ? "ພາສປອດ"
+                                  : "ບໍ່ລະບຸ"}
                               </Text>
                             </HStack>
                           </VStack>
@@ -903,47 +1072,129 @@ const SellerManagementDashboard = () => {
                             <HStack>
                               <CalendarIcon boxSize={4} />
                               <Text fontWeight="bold" minW="120px">
-                                วันเกิด:
+                                ວັນເກີດ:
                               </Text>
                               <Text>
                                 {selectedSeller?.verificationData?.birthDate
                                   ? new Date(
                                       selectedSeller.verificationData.birthDate
                                     ).toLocaleDateString("th-TH")
-                                  : "ไม่ระบุ"}
+                                  : "ບໍ່ລະບຸ"}
                               </Text>
                             </HStack>
                             <HStack>
                               <CalendarIcon boxSize={4} />
                               <Text fontWeight="bold" minW="120px">
-                                วันหมดอายุ:
+                                ວັນໝົດອາຍຸຂອງບັດ:
                               </Text>
                               <Text>
                                 {selectedSeller?.verificationData?.expiryDate
                                   ? new Date(
                                       selectedSeller.verificationData.expiryDate
                                     ).toLocaleDateString("th-TH")
-                                  : "ไม่ระบุ"}
+                                  : "ບໍ່ລະບຸ "}
                               </Text>
                             </HStack>
                             <HStack>
                               <PhoneIcon boxSize={4} />
                               <Text fontWeight="bold" minW="120px">
-                                เบอร์โทร:
+                                ເບີໂທລະສັບ:
                               </Text>
                               <Text>
-                                {selectedSeller?.user_id?.phone || "ไม่ระบุ"}
+                                {selectedSeller?.user_id?.phone || "ບໍ່ລະບຸ"}
                               </Text>
                             </HStack>
                           </VStack>
                         </Grid>
 
                         <VStack align="stretch">
-                          <Text fontWeight="bold">ที่อยู่ตามเอกสาร:</Text>
+                          <Text fontWeight="bold">ທີ່ຢູ່ຕາມເອກະສານ:</Text>
                           <Text pl={4}>
                             {selectedSeller?.verificationData?.address ||
-                              "ไม่ระบุ"}
+                              "ບໍ່ລະບຸ"}
                           </Text>
+                        </VStack>
+                        <VStack
+                          align="stretch"
+                          spacing={4}
+                          p={5}
+                          borderWidth="1px"
+                          borderRadius="lg"
+                          shadow="sm"
+                          bg="white"
+                        >
+                          {/* หัวข้อ */}
+                          <Text
+                            fontWeight="bold"
+                            fontSize="lg"
+                            color="blue.600"
+                          >
+                            ຄ່າທຳນຽມລະບົບ
+                          </Text>
+
+                          {/* ฟอร์มค่าธรรมเนียม */}
+                          <HStack spacing={3} align="center">
+                            <Box flex="1">
+                              <Text fontSize="sm" mb={1} color="gray.600">
+                                ຄ່າທຳນຽມ (%)
+                              </Text>
+                              <Input
+                                value={selectedSeller?.fee_system}
+                                onChange={(e) => setFee_system(e.target.value)}
+                                placeholder="ຄ່າທຳນຽມລະບົບ"
+                                type="number"
+                              />
+                            </Box>
+
+                            <Box flex="1">
+                              <Text fontSize="sm" mb={1} color="gray.600">
+                                ອາກອນມູນຄ່າເພີ່ມ
+                                <Text
+                                  as="span"
+                                  color="red.400"
+                                  fontWeight="medium"
+                                  ml={1}
+                                >
+                                  (ຍັງບໍ່ເປີດນຳໃຊ້)
+                                </Text>
+                              </Text>
+                              <Input
+                                disabled
+                                value={vat}
+                                onChange={(e) => setVat(e.target.value)}
+                                placeholder="ຄ່າອາກອນມູນຄ່າເພີ່ມ"
+                                type="number"
+                              />
+                            </Box>
+                          </HStack>
+
+                          {/* Action buttons */}
+                          <HStack spacing={3} pt={2}>
+                            <Button onClick={hanleFee} colorScheme="blue">
+                              ບັນທຶກ
+                            </Button>
+
+                            <Button
+                              colorScheme="blue"
+                              variant="outline"
+                              onClick={() => handleEdit(selectedSeller)}
+                            >
+                              ແກ້ໄຂຂໍ້ມູນສ່ວນບຸກຄົນຜູ້ຂາຍ
+                            </Button>
+
+                            <Button
+                              colorScheme={
+                                selectedSeller?.user_id?.active === true
+                                  ? "red"
+                                  : "green"
+                              }
+                              onClick={() => handleToggleStatus(selectedSeller)}
+                            >
+                              {selectedSeller?.user_id?.active === true
+                                ? "ຜູ້ຂາຍຖືກບ໋ອກ"
+                                : "ບ໋ອກຜູ້ຂາຍຊົ່ວຄາວ"}
+                            </Button>
+                          </HStack>
                         </VStack>
 
                         {selectedSeller?.verificationStatus === "rejected" &&
@@ -952,7 +1203,7 @@ const SellerManagementDashboard = () => {
                               <AlertIcon />
                               <Box>
                                 <AlertTitle fontSize="md">
-                                  เหตุผลที่ไม่ผ่านการยืนยัน:
+                                  ເຫດຜົນທີ່ປະຕິເສດ:
                                 </AlertTitle>
                                 <AlertDescription>
                                   {selectedSeller.rejectionReason}
@@ -971,7 +1222,7 @@ const SellerManagementDashboard = () => {
           <ModalFooter>
             <ButtonGroup spacing={3}>
               <Button variant="ghost" onClick={onClose}>
-                ปิด
+                ປິດ
               </Button>
               {selectedSeller?.verificationStatus === "pending" && (
                 <>
@@ -982,13 +1233,13 @@ const SellerManagementDashboard = () => {
                       openRejectModal(selectedSeller);
                     }}
                   >
-                    ปฏิเสธ
+                    ປະຕິເສດ
                   </Button>
                   <Button
                     colorScheme="green"
                     onClick={() => handleApprove(selectedSeller)}
                   >
-                    อนุมัติ
+                    ອະນຸມັດ
                   </Button>
                 </>
               )}
@@ -1001,7 +1252,7 @@ const SellerManagementDashboard = () => {
       <Modal isOpen={isRejectOpen} onClose={onRejectClose} size="md">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>ปฏิเสธผู้ขาย</ModalHeader>
+          <ModalHeader>ປະຕິເສດຜູ້ຂາຍ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4} align="stretch">
@@ -1010,26 +1261,26 @@ const SellerManagementDashboard = () => {
                 <Box>
                   <AlertTitle fontSize="sm">ยืนยันการปฏิเสธ</AlertTitle>
                   <AlertDescription fontSize="sm">
-                    คุณกำลังจะปฏิเสธร้าน "{actionSeller?.store_name}"
+                    ເຈົ້າກຳລັງປະຕິເສດຮ້ານ "{actionSeller?.store_name}"
                   </AlertDescription>
                 </Box>
               </Alert>
 
               <FormControl isRequired isInvalid={!rejectionReason.trim()}>
-                <FormLabel>เหตุผลในการปฏิเสธ</FormLabel>
+                <FormLabel> ເຫດຜົນທີ່ປະຕິເສດ</FormLabel>
                 <Textarea
-                  placeholder="กรุณาระบุเหตุผลในการปฏิเสธ เช่น เอกสารไม่ชัดเจน, ข้อมูลไม่ครบถ้วน, รูปภาพไม่ตรงกับเอกสาร เป็นต้น"
+                  placeholder=" ກະລຸນາລະບຸເຫດຜົນທີ່ປະຕິເສດ ເຊັ່ນ ເອກະສານບໍ່ຄົບ ບໍ່ແຈ້ງ ເປັນຕົ້ນ"
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
                   rows={4}
                   resize="vertical"
                 />
-                <FormErrorMessage>กรุณาระบุเหตุผลในการปฏิเสธ</FormErrorMessage>
+                <FormErrorMessage>ກະລຸນາລະບຸເຫດຜົນທີ່ປະຕິເສດ</FormErrorMessage>
               </FormControl>
 
               <Text fontSize="sm" color="gray.500">
-                เหตุผลนี้จะถูกแสดงให้ผู้ขายเห็น
-                เพื่อให้สามารถแก้ไขและส่งข้อมูลใหม่ได้
+                ເຫດຜົນນີ້ຈະຖືກສະແດງໃຫ້ຜູ້ຂາຍເຫັນ
+                ເພື່ອໃຫ້ສາມາດແກ້ໄຂແລະສົ່ງຂໍ້ມູນມາໃຫມ່ໄດ້
               </Text>
             </VStack>
           </ModalBody>
@@ -1044,16 +1295,73 @@ const SellerManagementDashboard = () => {
                   setActionSeller(null);
                 }}
               >
-                ยกเลิก
+                ຍົກເລີກ
               </Button>
               <Button
                 colorScheme="red"
                 onClick={handleReject}
                 isDisabled={!rejectionReason.trim()}
               >
-                ยืนยันการปฏิเสธ
+                ຢືນຢັນການປະຕິເສດ
               </Button>
             </ButtonGroup>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ///////////edit  isOpen: editOpen,
+    onOpen: editOnOpen,
+    onClose: editOnClose, */}
+      <Modal isOpen={editOpen} onClose={editOnClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Edit User</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <FormControl mb={3}>
+              <FormLabel>Username</FormLabel>
+              <Input
+                name="username"
+                value={formData?.username}
+                onChange={handleChange}
+                placeholder="Enter username"
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Phone</FormLabel>
+              <Input
+                name="phone"
+                value={formData?.phone}
+                onChange={handleChange}
+                placeholder="Enter phone number"
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Email</FormLabel>
+              <Input
+                name="email"
+                type="email"
+                value={formData?.email}
+                onChange={handleChange}
+                placeholder="Enter email"
+              />
+            </FormControl>
+
+            <FormControl mb={3}>
+              <FormLabel>Status</FormLabel>
+              <Input value={formData?.role} disabled />
+            </FormControl>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button onClick={onClose} mr={3}>
+              Cancel
+            </Button>
+            <Button colorScheme="blue" onClick={handleSave}>
+              Save
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

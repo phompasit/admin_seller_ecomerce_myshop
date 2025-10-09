@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Box,
   VStack,
@@ -42,10 +42,7 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText,
-  StatArrow,
   SimpleGrid,
-  Progress,
   Menu,
   MenuButton,
   MenuList,
@@ -54,34 +51,20 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Step,
-  StepDescription,
-  StepIcon,
-  StepIndicator,
-  StepNumber,
-  StepSeparator,
-  StepStatus,
-  StepTitle,
-  Stepper,
-  Image,
-  Tag,
-  TagLabel,
-  TagCloseButton,
   Wrap,
   WrapItem,
   RadioGroup,
   Radio,
-  Stack
-} from '@chakra-ui/react';
+  Stack,
+  Link,
+} from "@chakra-ui/react";
 import {
-  Search,
   Filter,
   Eye,
   Edit,
   Download,
   Bell,
   AlertTriangle,
-  Calendar,
   User,
   Store,
   CreditCard,
@@ -90,233 +73,227 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  FileText,
   Phone,
-  Mail,
   MapPin,
   DollarSign,
   TrendingUp,
-  TrendingDown,
   RefreshCw,
-  Plus,
-  Minus,
   MoreVertical,
   Copy,
   MessageSquare,
-  Camera,
-  Upload,
-  Save,
-  X
-} from 'lucide-react';
+} from "lucide-react";
 
+import { useDispatch, useSelector } from "react-redux";
+import { get_order_for } from "../../hooks/reducer/admin_reducer/provider_reducer";
+import { update_status_shipping } from "../../hooks/reducer/sellers_reducer/provider_sellers";
 const OrderManagementDashboard = () => {
   const toast = useToast();
-  const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
-  const { isOpen: isFilterOpen, onOpen: onFilterOpen, onClose: onFilterClose } = useDisclosure();
-  const { isOpen: isNoteOpen, onOpen: onNoteOpen, onClose: onNoteClose } = useDisclosure();
-  
+  const {
+    isOpen: isDetailOpen,
+    onOpen: onDetailOpen,
+    onClose: onDetailClose,
+  } = useDisclosure();
+  const {
+    isOpen: isFilterOpen,
+    onOpen: onFilterOpen,
+    onClose: onFilterClose,
+  } = useDisclosure();
+  const {
+    isOpen: isNoteOpen,
+    onOpen: onNoteOpen,
+    onClose: onNoteClose,
+  } = useDisclosure();
+  const { get_order_admin } = useSelector((state) => state.provider_reducer);
   // Sample data
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD-001',
-      customer: { name: 'สมชาย ใจดี', email: 'somchai@email.com', phone: '081-234-5678', avatar: '' },
-      store: { name: 'ร้านของใช้ในบ้าน', id: 'STORE-001' },
-      total: 1250.00,
-      status: 'pending',
-      paymentStatus: 'paid',
-      orderDate: '2024-01-15T10:30:00',
-      items: [
-        { name: 'หม้อหุงข้าว', quantity: 1, price: 890 },
-        { name: 'กระทะ', quantity: 2, price: 180 }
-      ],
-      shippingAddress: {
-        address: '123/45 ถ.สุขุมวิท แขวงคลองตัน',
-        district: 'เขตวัฒนา',
-        province: 'กรุงเทพมหานคร',
-        zipcode: '10110'
-      },
-      timeline: [
-        { status: 'ordered', date: '2024-01-15T10:30:00', completed: true },
-        { status: 'paid', date: '2024-01-15T10:35:00', completed: true },
-        { status: 'processing', date: null, completed: false },
-        { status: 'shipped', date: null, completed: false },
-        { status: 'delivered', date: null, completed: false }
-      ],
-      flags: ['high_value'],
-      notes: [],
-      refund: null
-    },
-    {
-      id: 'ORD-002',
-      customer: { name: 'สุดา แสงทอง', email: 'suda@email.com', phone: '082-345-6789', avatar: '' },
-      store: { name: 'ร้านเสื้อผ้าแฟชั่น', id: 'STORE-002' },
-      total: 2890.00,
-      status: 'shipped',
-      paymentStatus: 'paid',
-      orderDate: '2024-01-14T14:20:00',
-      items: [
-        { name: 'เสื้อยืด', quantity: 3, price: 590 },
-        { name: 'กางเกงยีนส์', quantity: 1, price: 1120 }
-      ],
-      shippingAddress: {
-        address: '456/78 ถ.รัชดาภิเษก',
-        district: 'เขตดินแดง',
-        province: 'กรุงเทพมหานคร',
-        zipcode: '10400'
-      },
-      timeline: [
-        { status: 'ordered', date: '2024-01-14T14:20:00', completed: true },
-        { status: 'paid', date: '2024-01-14T14:25:00', completed: true },
-        { status: 'processing', date: '2024-01-14T16:00:00', completed: true },
-        { status: 'shipped', date: '2024-01-15T09:00:00', completed: true },
-        { status: 'delivered', date: null, completed: false }
-      ],
-      flags: [],
-      notes: [
-        { id: 1, text: 'ลูกค้าขอเปลี่ยนสี', author: 'Admin', date: '2024-01-14T15:00:00' }
-      ],
-      refund: null
-    },
-    {
-      id: 'ORD-003',
-      customer: { name: 'วิชัย รักเรียน', email: 'wichai@email.com', phone: '083-456-7890', avatar: '' },
-      store: { name: 'ร้านหนังสือและเครื่องเขียน', id: 'STORE-003' },
-      total: 450.00,
-      status: 'cancelled',
-      paymentStatus: 'refunded',
-      orderDate: '2024-01-13T09:15:00',
-      items: [
-        { name: 'หนังสือ', quantity: 2, price: 180 },
-        { name: 'ปากกา', quantity: 5, price: 18 }
-      ],
-      shippingAddress: {
-        address: '789/12 ถ.พหลโยธิน',
-        district: 'เขตจตุจักร',
-        province: 'กรุงเทพมหานคร',
-        zipcode: '10900'
-      },
-      timeline: [
-        { status: 'ordered', date: '2024-01-13T09:15:00', completed: true },
-        { status: 'paid', date: '2024-01-13T09:20:00', completed: true },
-        { status: 'cancelled', date: '2024-01-13T11:30:00', completed: true }
-      ],
-      flags: ['customer_complaint'],
-      notes: [
-        { id: 1, text: 'ลูกค้าขอยกเลิก - สินค้าไม่ตรงตามที่ต้องการ', author: 'Admin', date: '2024-01-13T11:30:00' }
-      ],
-      refund: {
-        amount: 450.00,
-        status: 'completed',
-        date: '2024-01-13T12:00:00'
-      }
-    }
-  ]);
-
+  const [orders, setOrders] = useState();
+  const dispatch = useDispatch();
+  useEffect(() => {
+    dispatch(get_order_for());
+  }, [dispatch]);
+  useEffect(() => {
+    setOrders(get_order_admin);
+  }, [get_order_admin]);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [viewMode, setViewMode] = useState('table'); // table or card
+  const [viewMode, setViewMode] = useState("table"); // table or card
   const [filters, setFilters] = useState({
-    search: '',
-    status: '',
-    dateFrom: '',
-    dateTo: '',
-    store: '',
-    paymentStatus: ''
+    search: "",
+    status: "",
+    dateFrom: "",
+    dateTo: "",
+    store: "",
+    paymentStatus: "",
   });
-  const [savedViews, setSavedViews] = useState([
-    { name: 'รอดำเนินการ', filters: { status: 'pending' } },
-    { name: 'มีปัญหา', filters: { flags: ['customer_complaint', 'high_value'] } }
-  ]);
+  const savedViews = [
+    { name: "ລໍຖ້າດຳເນີນການ", filters: { status: "pending" } },
+    {
+      name: "ມີບັນຫາ",
+      filters: { flags: ["customer_complaint", "high_value"] },
+    },
+  ];
 
   // Filter logic
-  const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
-      const matchSearch = !filters.search || 
-        order.id.toLowerCase().includes(filters.search.toLowerCase()) ||
-        order.customer.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        order.store.name.toLowerCase().includes(filters.search.toLowerCase());
-      
-      const matchStatus = !filters.status || order.status === filters.status;
-      const matchPaymentStatus = !filters.paymentStatus || order.paymentStatus === filters.paymentStatus;
-      const matchStore = !filters.store || order.store.name.toLowerCase().includes(filters.store.toLowerCase());
+  // Helper ตัดเวลาออก เหลือแค่ yyyy-MM-dd
+  const formatDateOnly = (date) => {
+    if (!date) return null;
+    return new Date(date).toISOString().split("T")[0]; // "2025-09-26"
+  };
 
-      return matchSearch && matchStatus && matchPaymentStatus && matchStore;
-    });
-  }, [orders, filters]);
+  // Filter logic
+  const filteredOrders = orders?.filter((order) => {
+    const searchTerm = filters?.search?.toLowerCase() || "";
 
-  // Status colors and labels
+    // ✅ Search
+    const matchSearch =
+      !searchTerm ||
+      order?._id?.toLowerCase().includes(searchTerm) ||
+      order?.orderId?.toString()?.toLowerCase().includes(searchTerm) ||
+      order?.user_id?.username?.toLowerCase().includes(searchTerm) ||
+      order?.shippingAddress?.name?.toLowerCase().includes(searchTerm) ||
+      order?.shippingAddress?.phone?.toLowerCase().includes(searchTerm);
+
+    // ✅ Shipping status
+    const matchStatus =
+      !filters?.status ||
+      order?.shipping_status?.toLowerCase() === filters?.status?.toLowerCase();
+
+    // ✅ Payment status
+    const matchPayment =
+      !filters?.paymentStatus ||
+      order?.status?.toLowerCase() === filters?.paymentStatus?.toLowerCase();
+
+    // ✅ Date range (เทียบแค่ yyyy-MM-dd)
+    const createdAt = formatDateOnly(order?.createdAt);
+    const fromDate = filters?.dateFrom || null;
+    const toDate = filters?.dateTo || null;
+
+    const matchDate =
+      (!fromDate || createdAt >= fromDate) && (!toDate || createdAt <= toDate);
+
+    // ✅ Amount range
+    const total = Number(order?.total_summary || 0);
+    const minAmount = filters?.minAmount ? Number(filters.minAmount) : null;
+    const maxAmount = filters?.maxAmount ? Number(filters.maxAmount) : null;
+
+    const matchAmount =
+      (!minAmount || total >= minAmount) && (!maxAmount || total <= maxAmount);
+
+    return (
+      matchSearch && matchStatus && matchPayment && matchDate && matchAmount
+    );
+  });
+
+  // Status colors and l  abels
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { color: 'orange', label: 'รอดำเนินการ', icon: Clock },
-      processing: { color: 'blue', label: 'กำลังจัดเตรียม', icon: Package },
-      shipped: { color: 'purple', label: 'กำลังจัดส่ง', icon: Truck },
-      delivered: { color: 'green', label: 'จัดส่งแล้ว', icon: CheckCircle },
-      cancelled: { color: 'red', label: 'ยกเลิก', icon: XCircle }
+      pending: { color: "orange", label: "ລໍຖ້າດຳເນີນການ", icon: Clock },
+      Processing: { color: "blue", label: "ກຳລັງຈັດກຽມ", icon: Package },
+      Shipped: { color: "purple", label: "ກຳລັງຈັດສົ່ງ", icon: Truck },
+      Delivered: { color: "green", label: "ຈັດສົ່ງແລ້ວ", icon: CheckCircle },
+      Cancelled: { color: "red", label: "ຍົກເລີກຄຳສັ່ງຊື້", icon: XCircle },
     };
-    
-    const config = statusConfig[status];
-    const IconComponent = config.icon;
-    
+
+    // Normalize status to match config keys
+    const normalizedStatus =
+      status?.charAt(0).toUpperCase() + status?.slice(1).toLowerCase();
+
+    const config = statusConfig[normalizedStatus] || statusConfig[status];
+    const IconComponent = config?.icon;
+
+    if (!IconComponent) return null;
+
     return (
-      <Badge colorScheme={config.color} display="flex" alignItems="center" gap={1}>
+      <Badge
+        colorScheme={config?.color}
+        display="flex"
+        alignItems="center"
+        gap={1}
+      >
         <IconComponent size={12} />
-        {config.label}
+        {config?.label}
       </Badge>
     );
   };
-
   const getPaymentBadge = (status) => {
     const statusConfig = {
-      pending: { color: 'orange', label: 'รอชำระ' },
-      paid: { color: 'green', label: 'ชำระแล้ว' },
-      refunded: { color: 'red', label: 'คืนเงินแล้ว' },
-      processing: { color: 'blue', label: 'กำลังตรวจสอบ' }
+      pending: { color: "orange", label: "ລໍຖ້າຊຳລະເງິນ" },
+      completed: { color: "green", label: "ຊຳລະເງິນແລ້ວ" },
+      refunded: { color: "red", label: "ຄືນເງິນແລ້ວ" },
+      processing: { color: "blue", label: "ກຳລັງກວດສອບ" },
     };
-    
+
     const config = statusConfig[status];
-    return <Badge colorScheme={config.color}>{config.label}</Badge>;
+    return <Badge colorScheme={config?.color}>{config?.label}</Badge>;
   };
 
   const getFlagBadge = (flag) => {
     const flagConfig = {
-      high_value: { color: 'purple', label: 'ยอดสูง', icon: TrendingUp },
-      customer_complaint: { color: 'red', label: 'ร้องเรียน', icon: AlertTriangle },
-      duplicate_ip: { color: 'yellow', label: 'IP ซ้ำ', icon: Copy }
+      high_value: { color: "purple", label: "ຍອດສູງ", icon: TrendingUp },
+      customer_complaint: {
+        color: "red",
+        label: "ຮ້ອງຮຽນ",
+        icon: AlertTriangle,
+      },
+      duplicate_ip: { color: "yellow", label: "IP ຊໍ້າ", icon: Copy },
     };
-    
+
     const config = flagConfig[flag];
     if (!config) return null;
-    
-    const IconComponent = config.icon;
+
+    const IconComponent = config?.icon;
     return (
-      <Badge colorScheme={config.color} size="sm" display="flex" alignItems="center" gap={1}>
+      <Badge
+        colorScheme={config?.color}
+        size="sm"
+        display="flex"
+        alignItems="center"
+        gap={1}
+      >
         <IconComponent size={10} />
-        {config.label}
+        {config?.label}
       </Badge>
     );
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { 
-            ...order, 
-            status: newStatus,
-            timeline: order.timeline.map((step) => {
-              if ((newStatus === 'processing' && step.status === 'processing') ||
-                  (newStatus === 'shipped' && (step.status === 'processing' || step.status === 'shipped')) ||
-                  (newStatus === 'delivered' && step.status !== 'cancelled')) {
-                return { ...step, completed: true, date: new Date().toISOString() };
-              }
-              return step;
-            })
-          }
-        : order
-    ));
-    
+  const updateOrderStatus = (orderId, newStatus, note) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: newStatus,
+              timeline: order?.deliverySteps?.map((step) => {
+                if (
+                  (newStatus === "Processing" &&
+                    step.status === "Processing") ||
+                  (newStatus === "Shipped" &&
+                    (step.status === "Processing" ||
+                      step.status === "Shipped")) ||
+                  (newStatus === "Delivered" && step.status !== "Cancelled")
+                ) {
+                  return {
+                    ...step,
+                    completed: true,
+                    date: new Date().toISOString(),
+                  };
+                }
+                return step;
+              }),
+            }
+          : order
+      )
+    );
+    dispatch(
+      update_status_shipping({
+        id: orderId,
+        shipping_status: newStatus,
+        step: newStatus,
+        note: note,
+      })
+    ).then(() => dispatch(get_order_for()));
     toast({
-      title: 'อัปเดตสถานะสำเร็จ',
-      description: `เปลี่ยนสถานะคำสั่งซื้อ ${orderId} เป็น ${newStatus}`,
-      status: 'success',
+      title: "ອັບເດດສຳເລັດ",
+      description: `ປ່ຽນສະຖານະຄຳສັ່ງຊື້ ${orderId} ເປັນ ${newStatus}`,
+      status: "success",
       duration: 3000,
       isClosable: true,
     });
@@ -325,9 +302,9 @@ const OrderManagementDashboard = () => {
   const exportOrders = (format) => {
     // Simulate export
     toast({
-      title: 'กำลังส่งออกข้อมูล',
+      title: "กำลังส่งออกข้อมูล",
       description: `ส่งออกข้อมูลเป็น ${format.toUpperCase()} สำเร็จ`,
-      status: 'info',
+      status: "info",
       duration: 3000,
       isClosable: true,
     });
@@ -335,24 +312,29 @@ const OrderManagementDashboard = () => {
 
   const addNote = (orderId, noteText) => {
     if (!noteText.trim()) return;
-    
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { 
-            ...order, 
-            notes: [...order.notes, {
-              id: Date.now(),
-              text: noteText,
-              author: 'Admin',
-              date: new Date().toISOString()
-            }]
-          }
-        : order
-    ));
-    
+
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              notes: [
+                ...order.notes,
+                {
+                  id: Date.now(),
+                  text: noteText,
+                  author: "Admin",
+                  date: new Date().toISOString(),
+                },
+              ],
+            }
+          : order
+      )
+    );
+
     toast({
-      title: 'เพิ่มหมายเหตุสำเร็จ',
-      status: 'success',
+      title: "เพิ่มหมายเหตุสำเร็จ",
+      status: "success",
       duration: 2000,
       isClosable: true,
     });
@@ -360,13 +342,15 @@ const OrderManagementDashboard = () => {
 
   // Statistics
   const stats = useMemo(() => {
-    const total = orders.length;
-    const pending = orders.filter(o => o.status === 'pending').length;
-    const shipped = orders.filter(o => o.status === 'shipped').length;
-    const delivered = orders.filter(o => o.status === 'delivered').length;
-    const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    const totalRevenue = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.total, 0);
-    
+    const total = orders?.length;
+    const pending = orders?.filter((o) => o.status === "pending")?.length;
+    const shipped = orders?.filter((o) => o.status === "Shipped")?.length;
+    const delivered = orders?.filter((o) => o.status === "Delivered")?.length;
+    const cancelled = orders?.filter((o) => o.status === "Cancelled")?.length;
+    const totalRevenue = orders
+      ?.filter((o) => o.status !== "Cancelled")
+      .reduce((sum, o) => sum + o.total, 0);
+
     return {
       total,
       pending,
@@ -374,21 +358,26 @@ const OrderManagementDashboard = () => {
       delivered,
       cancelled,
       totalRevenue,
-      cancelRate: total > 0 ? ((cancelled / total) * 100).toFixed(1) : 0
+      cancelRate: total > 0 ? ((cancelled / total) * 100).toFixed(1) : 0,
     };
   }, [orders]);
-console.log(setSavedViews)
   const OrderCard = ({ order }) => (
     <Card>
       <CardHeader pb={2}>
         <Flex justify="space-between" align="center">
           <VStack align="start" spacing={1}>
-            <Text fontWeight="bold" fontSize="lg">{order.id}</Text>
-            <Text fontSize="sm" color="gray.600">{new Date(order.orderDate).toLocaleDateString('th-TH')}</Text>
+            <Text fontWeight="bold" fontSize="lg">
+              {order?.get_order_adminid}
+            </Text>
+            <Text fontSize="sm" color="gray.600">
+              {new Date(order?.createdAt).toLocaleDateString("th-TH")}
+            </Text>
           </VStack>
           <VStack align="end" spacing={1}>
-            {getStatusBadge(order.status)}
-            <Text fontWeight="bold" color="green.500">฿{order.total.toLocaleString()}</Text>
+            {order.status}
+            <Text fontWeight="bold" color="green.500">
+              LAK {order?.total?.toLocaleString()}
+            </Text>
           </VStack>
         </Flex>
       </CardHeader>
@@ -396,46 +385,86 @@ console.log(setSavedViews)
         <VStack align="start" spacing={2}>
           <HStack>
             <User size={14} />
-            <Text fontSize="sm">{order.customer.name}</Text>
+            <Text fontSize="sm">{order?.user_id?.username}</Text>
           </HStack>
           <HStack>
             <Store size={14} />
-            <Text fontSize="sm">{order.store.name}</Text>
+            <Text fontSize="sm">{order?.sellers[0].store_name}</Text>
           </HStack>
           <HStack>
             <CreditCard size={14} />
-            {getPaymentBadge(order.paymentStatus)}
+            {getPaymentBadge(order?.status)}
           </HStack>
-          {order.flags.length > 0 && (
+          {order?.flags?.length > 0 && (
             <Wrap>
-              {order.flags.map(flag => (
-                <WrapItem key={flag}>
-                  {getFlagBadge(flag)}
-                </WrapItem>
+              {order?.flags?.map((flag) => (
+                <WrapItem key={flag}>{getFlagBadge(flag)}</WrapItem>
               ))}
             </Wrap>
           )}
           <HStack mt={2} spacing={2}>
-            <Button size="sm" leftIcon={<Eye size={14} />} onClick={() => {
-              setSelectedOrder(order);
-              onDetailOpen();
-            }}>
-              ดูรายละเอียด
+            <Button
+              size="sm"
+              leftIcon={<Eye size={14} />}
+              onClick={() => {
+                setSelectedOrder(order);
+                onDetailOpen();
+              }}
+            >
+              ເບີງລາຍລະອຽດ
             </Button>
             <Menu>
-              <MenuButton as={IconButton} icon={<MoreVertical size={14} />} size="sm" variant="ghost" />
+              <MenuButton
+                as={IconButton}
+                icon={<MoreVertical size={14} />}
+                size="sm"
+                variant="ghost"
+              />
               <MenuList>
-                <MenuItem onClick={() => updateOrderStatus(order.id, 'processing')}>
-                  เปลี่ยนเป็น "กำลังจัดเตรียม"
+                <MenuItem
+                  onClick={() =>
+                    updateOrderStatus(
+                      order?._id,
+                      "Processing",
+                      "ກຳລັງກຽມສິນຄ້າແລະແພ໋ກສຶນຄ້າ"
+                    )
+                  }
+                >
+                  ປ່ຽນເປັນ "ກຳລັງກຽມ"
                 </MenuItem>
-                <MenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                  เปลี่ยนเป็น "กำลังจัดส่ง"
+                <MenuItem
+                  onClick={() =>
+                    updateOrderStatus(
+                      order?._id,
+                      "Shipped",
+                      "ສິນຄ້າອອກຈາກສາງກຳລັງຈັດສົ່ງໃຫ່ຜູ້ບໍລິການຂົນສົ່ງ"
+                    )
+                  }
+                >
+                  ປ່ຽນເປັນ "ກຳລັງຈັດສົ່ງ"
                 </MenuItem>
-                <MenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                  เปลี่ยนเป็น "จัดส่งแล้ว"
+                <MenuItem
+                  onClick={() =>
+                    updateOrderStatus(
+                      order?._id,
+                      "Delivered",
+                      "ສິນຄ້າໄດ້ຮັບການຈັດສົ່ງສຳເລັດໃຫ້ກັບຜູ້ບໍລິການຂົນສົ່ງ"
+                    )
+                  }
+                >
+                  ປ່ຽນເປັນ "ຈັດສົ່ງແລ້ວ"
                 </MenuItem>
-                <MenuItem onClick={() => updateOrderStatus(order.id, 'cancelled')} color="red.500">
-                  ยกเลิกคำสั่งซื้อ
+                <MenuItem
+                  onClick={() =>
+                    updateOrderStatus(
+                      order?._id,
+                      "Cancelled",
+                      "ຄຳສັ່ງຊື້ຂອງທ່ານຖືກຍົກເລີກ ກຳລັງດຳເນີນການຄືນເງິນພາຍໃນ 1-3ຊົ່ວໂມງ"
+                    )
+                  }
+                  color="red.500"
+                >
+                  ຍົກເລີກຄຳສັ່ງຊື້
                 </MenuItem>
               </MenuList>
             </Menu>
@@ -447,12 +476,11 @@ console.log(setSavedViews)
 
   const TimelineStep = ({ step, isLast }) => {
     const stepLabels = {
-      ordered: 'สั่งซื้อ',
-      paid: 'ชำระเงิน',
-      processing: 'จัดเตรียมสินค้า',
-      shipped: 'จัดส่ง',
-      delivered: 'ได้รับสินค้า',
-      cancelled: 'ยกเลิก'
+      order_placed: "ຄຳສັ່ງຊື້ຈາກຜູ້ຊື້",
+      Processing: "ກຳລັງກຽມສິນຄ້າແລະແພ໋ກສຶນຄ້າ",
+      Shipped: "ສິນຄ້າອອກຈາກສາງກຳລັງຈັດສົ່ງໃຫ່ຜູ້ບໍລິການຂົນສົ່ງ",
+      Delivered: "ສິນຄ້າໄດ້ຮັບການຈັດສົ່ງສຳເລັດໃຫ້ກັບຜູ້ບໍລິການຂົນສົ່ງ",
+      Cancelled: "ຍົກເລີກ",
     };
 
     return (
@@ -462,56 +490,81 @@ console.log(setSavedViews)
             w={8}
             h={8}
             borderRadius="full"
-            bg={step.completed ? 'green.500' : 'gray.300'}
+            bg={step.step ? "green.500" : "gray.300"}
             display="flex"
             alignItems="center"
             justifyContent="center"
           >
-            {step.completed ? (
+            {step.step ? (
               <CheckCircle size={16} color="white" />
             ) : (
               <Clock size={16} color="gray.600" />
             )}
           </Box>
           {!isLast && (
-            <Box w={0.5} h={8} bg={step.completed ? 'green.500' : 'gray.300'} />
+            <Box w={0.5} h={8} bg={step.step ? "green.500" : "gray.300"} />
           )}
         </VStack>
         <VStack align="start" spacing={1} flex={1}>
-          <Text fontWeight={step.completed ? 'bold' : 'normal'}>
-            {stepLabels[step.status]}
+          <Text fontWeight={step ? "bold" : "normal"}>
+            {stepLabels[step.step]}
           </Text>
-          {step.date && (
+          {step.timestamp && (
             <Text fontSize="sm" color="gray.600">
-              {new Date(step.date).toLocaleString('th-TH')}
+              {new Date(step.timestamp).toLocaleString("th-TH")}
             </Text>
           )}
         </VStack>
       </HStack>
     );
   };
+  function getStatusPayment(status) {
+    switch (status) {
+      case "pending_payment":
+        return <Badge colorScheme="yellow">ລໍຖ້າຊຳລະ</Badge>;
 
+      case "PAYMENT_COMPLETED":
+        return <Badge colorScheme="green">ຊຳລະແລ້ວ</Badge>;
+
+      case "expired":
+        return <Badge colorScheme="red">ຊຳລະບໍ່ສຳເລັດ</Badge>;
+
+      case "Cancelled":
+        return <Badge colorScheme="gray">ຍົກເລີກ</Badge>;
+
+      default:
+        return <Badge colorScheme="purple">ບໍ່ຮູ້ສະຖານະ</Badge>;
+    }
+  }
   return (
     <Box p={6} maxW="100vw" bg="gray.50" minH="100vh">
       {/* Header */}
       <VStack align="start" spacing={6} mb={6}>
         <HStack justify="space-between" w="full">
           <VStack align="start" spacing={2}>
-            <Text fontSize="3xl" fontWeight="bold">จัดการคำสั่งซื้อ</Text>
-            <Text color="gray.600">ระบบจัดการคำสั่งซื้อ Marketplace</Text>
+            <Text fontSize="3xl" fontWeight="bold">
+              ຈັດການຄຳສັ່ງຊື້
+            </Text>
+            <Text color="gray.600">ລະບົບຈັດການຄຳສັ່ງຊື້ Marketplace</Text>
           </VStack>
           <HStack spacing={2}>
             <Button leftIcon={<Bell size={16} />} variant="ghost">
-              แจ้งเตือน (3)
+              ແຈ້ງເຕືອນ (0)
             </Button>
             <Menu>
               <MenuButton as={Button} rightIcon={<Download size={16} />}>
-                ส่งออกข้อมูล
+                ສົ່ງອອກຂໍ້ມູນ
               </MenuButton>
               <MenuList>
-                <MenuItem onClick={() => exportOrders('excel')}>Excel (.xlsx)</MenuItem>
-                <MenuItem onClick={() => exportOrders('csv')}>CSV (.csv)</MenuItem>
-                <MenuItem onClick={() => exportOrders('pdf')}>PDF (.pdf)</MenuItem>
+                <MenuItem onClick={() => exportOrders("excel")}>
+                  Excel (.xlsx)
+                </MenuItem>
+                <MenuItem onClick={() => exportOrders("csv")}>
+                  CSV (.csv)
+                </MenuItem>
+                <MenuItem onClick={() => exportOrders("pdf")}>
+                  PDF (.pdf)
+                </MenuItem>
               </MenuList>
             </Menu>
           </HStack>
@@ -520,32 +573,34 @@ console.log(setSavedViews)
         {/* Statistics */}
         <SimpleGrid columns={{ base: 2, md: 4, lg: 7 }} spacing={4} w="full">
           <Stat>
-            <StatLabel>คำสั่งซื้อทั้งหมด</StatLabel>
+            <StatLabel>ຄ່າສັ່ງຊື້ທັງໝົດ</StatLabel>
             <StatNumber>{stats.total}</StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>รอดำเนินการ</StatLabel>
+            <StatLabel>ລໍຖ້າດຳເນີນການ</StatLabel>
             <StatNumber color="orange.500">{stats.pending}</StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>กำลังจัดส่ง</StatLabel>
+            <StatLabel>ກຳລັງຈັດສົ່ງ</StatLabel>
             <StatNumber color="purple.500">{stats.shipped}</StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>จัดส่งแล้ว</StatLabel>
+            <StatLabel>ຈັດສົ່ງແລ້ວ</StatLabel>
             <StatNumber color="green.500">{stats.delivered}</StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>ยกเลิก</StatLabel>
+            <StatLabel>ຍົກເລີກ</StatLabel>
             <StatNumber color="red.500">{stats.cancelled}</StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>ยอดขายรวม</StatLabel>
-            <StatNumber color="green.600">฿{stats.totalRevenue.toLocaleString()}</StatNumber>
+            <StatLabel>ຍອດຂາຍລວມ</StatLabel>
+            <StatNumber color="green.600">
+              LAK {stats.totalRevenue?.toLocaleString()}
+            </StatNumber>
           </Stat>
           <Stat>
-            <StatLabel>อัตราการยกเลิก</StatLabel>
-            <StatNumber color={stats.cancelRate > 10 ? 'red.500' : 'green.500'}>
+            <StatLabel>ອັດຕາການຍົກເລີກ</StatLabel>
+            <StatNumber color={stats.cancelRate > 10 ? "red.500" : "green.500"}>
               {stats.cancelRate}%
             </StatNumber>
           </Stat>
@@ -559,60 +614,77 @@ console.log(setSavedViews)
             <HStack w="full" spacing={4}>
               <Box flex={1}>
                 <Input
-                  placeholder="ค้นหาด้วยรหัสคำสั่งซื้อ, ชื่อลูกค้า, หรือร้านค้า..."
-                  leftElement={<Search size={16} />}
                   value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      search: e.target.value,
+                    }))
+                  }
+                  placeholder="Search..."
                 />
               </Box>
               <Select
-                placeholder="สถานะคำสั่งซื้อ"
+                placeholder="ສະຖານະຄຳສັ່ງຊື້"
                 value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, status: e.target.value }))
+                }
                 w="200px"
               >
-                <option value="pending">รอดำเนินการ</option>
-                <option value="processing">กำลังจัดเตรียม</option>
-                <option value="shipped">กำลังจัดส่ง</option>
-                <option value="delivered">จัดส่งแล้ว</option>
-                <option value="cancelled">ยกเลิก</option>
+                <option value="pending">ລໍຖ້າດຳເນີນການ</option>
+                <option value="Processing">ກຳລັງຈັດກຽມ</option>
+                <option value="Shipped">ກຳລັງຈັດສົ່ງ</option>
+                <option value="Delivered">ຈັດສົ່ງແລ້ວ</option>
+                <option value="Cancelled">ຍົກເລີກ </option>
               </Select>
               <Select
-                placeholder="สถานะการชำระ"
+                placeholder="ສະຖານະການຊຳລະເງີນ"
                 value={filters.paymentStatus}
-                onChange={(e) => setFilters(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({
+                    ...prev,
+                    paymentStatus: e.target.value,
+                  }))
+                }
                 w="200px"
               >
-                <option value="pending">รอชำระ</option>
-                <option value="paid">ชำระแล้ว</option>
-                <option value="processing">กำลังตรวจสอบ</option>
-                <option value="refunded">คืนเงินแล้ว</option>
+                <option value="pending">ລໍຖ້າຊຳລະເງິນ</option>
+                <option value="completed">ຊຳລະເງິນແລ້ວ</option>
+                <option value="processing">ກຳລັງກວດສອບ</option>
+                <option value="refunded">ຄືນເງິນແລ້ວ</option>
               </Select>
               <Button leftIcon={<Filter size={16} />} onClick={onFilterOpen}>
-                ตัวกรองเพิ่มเติม
+                ຕົວກຣອງເພີ່ມເຕີ່ມ
               </Button>
             </HStack>
 
             <HStack justify="space-between" w="full">
               <HStack>
-                <Text fontSize="sm" color="gray.600">มุมมองที่บันทึกไว้:</Text>
-                {savedViews.map(view => (
+                <Text fontSize="sm" color="gray.600">
+                  ມຸມມອງທີ່ບັນທຶກໄວ້:
+                </Text>
+                {savedViews.map((view) => (
                   <Button
                     key={view.name}
                     size="sm"
                     variant="outline"
-                    onClick={() => setFilters(prev => ({ ...prev, ...view.filters }))}
+                    onClick={() =>
+                      setFilters((prev) => ({ ...prev, ...view.filters }))
+                    }
                   >
                     {view.name}
                   </Button>
                 ))}
               </HStack>
               <HStack>
-                <Text fontSize="sm" color="gray.600">แสดงผล:</Text>
+                <Text fontSize="sm" color="gray.600">
+                  ສະແດງຜົນ:
+                </Text>
                 <RadioGroup value={viewMode} onChange={setViewMode}>
                   <Stack direction="row">
-                    <Radio value="table">ตาราง</Radio>
-                    <Radio value="card">การ์ด</Radio>
+                    <Radio value="table">ແບບຕາລາງ</Radio>
+                    <Radio value="card">ແບບກາດ</Radio>
                   </Stack>
                 </RadioGroup>
               </HStack>
@@ -626,49 +698,73 @@ console.log(setSavedViews)
         <CardHeader>
           <HStack justify="space-between">
             <Text fontSize="xl" fontWeight="bold">
-              รายการคำสั่งซื้อ ({filteredOrders.length})
+              ລາຍການຄຳສັ່ງຊື້ ({orders?.length})
             </Text>
-            <Button leftIcon={<RefreshCw size={16} />} size="sm" variant="ghost">
-              รีเฟรช
+            <Button
+              leftIcon={<RefreshCw size={16} />}
+              size="sm"
+              variant="ghost"
+            >
+              ລີເຟຣສ
             </Button>
           </HStack>
         </CardHeader>
         <CardBody>
-          {viewMode === 'table' ? (
+          {viewMode === "table" ? (
             <Box overflowX="auto">
               <Table variant="simple">
                 <Thead>
                   <Tr>
-                    <Th>รหัสคำสั่งซื้อ</Th>
-                    <Th>ลูกค้า</Th>
-                    <Th>ร้านค้า</Th>
-                    <Th>ยอดรวม</Th>
-                    <Th>สถานะ</Th>
-                    <Th>การชำระเงิน</Th>
-                    <Th>วันที่สั่ง</Th>
-                    <Th>แจ้งเตือน</Th>
-                    <Th>จัดการ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ລະຫັດຄຳສັ່ງຊື້</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ລູກຄ້າ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ຮ້ານຄ້າ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ຍອດລວມ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ສະຖານະ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ສະຖານະຂົນສົ່ງ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ວັນທີ່ສັ່ງຊື້</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ແຈ້ງເຕືອນ</Th>
+                    <Th fontFamily={"Noto Sans Lao, serif"}>ຈັດການ</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {filteredOrders.map(order => (
-                    <Tr key={order.id}>
-                      <Td fontWeight="bold">{order.id}</Td>
+                  {filteredOrders?.map((order) => (
+                    <Tr key={order._id}>
+                      <Td fontWeight="bold">#{order?.orderId}</Td>
                       <Td>
                         <VStack align="start" spacing={1}>
-                          <Text>{order.customer.name}</Text>
-                          <Text fontSize="sm" color="gray.600">{order.customer.email}</Text>
+                          <Text>{order?.user_id?.username || "no"}</Text>
+                          <Text fontSize="sm" color="gray.600">
+                            {order?.user_id?.phone || "no"}
+                          </Text>
                         </VStack>
                       </Td>
-                      <Td>{order.store.name}</Td>
-                      <Td fontWeight="bold" color="green.600">฿{order.total.toLocaleString()}</Td>
-                      <Td>{getStatusBadge(order.status)}</Td>
-                      <Td>{getPaymentBadge(order.paymentStatus)}</Td>
-                      <Td>{new Date(order.orderDate).toLocaleDateString('th-TH')}</Td>
+                      <Td>{order?.sellers[0].store_name}</Td>
+                      <Td fontWeight="bold" color="green.600">
+                        <VStack align="start" spacing={1}>
+                          <Text> LAK {order?.total?.toLocaleString()}</Text>
+                          <Text fontSize="sm" color="gray.600">
+                            LAK {order?.fee_system.toLocaleString() || "no"}
+                          </Text>
+                        </VStack>
+                      </Td>
                       <Td>
-                        {order.flags.length > 0 && (
+                        <VStack align="start" spacing={1}>
+                          <Text> {getPaymentBadge(order?.status)}</Text>
+                          <Text fontSize="sm" color="gray.600">
+                            ຊຳລະດ້ວຍ {order?.paymentMethod}
+                          </Text>
+                        </VStack>
+                      </Td>
+                      <Td>{getStatusBadge(order?.shipping_status)}</Td>
+                      <Td>
+                        {new Date(order?.createdAt)?.toLocaleDateString(
+                          "th-TH"
+                        )}
+                      </Td>
+                      <Td>
+                        {order?.flags?.length > 0 && (
                           <HStack>
-                            {order.flags.map(flag => getFlagBadge(flag))}
+                            {order?.flags?.map((flag) => getFlagBadge(flag))}
                           </HStack>
                         )}
                       </Td>
@@ -684,19 +780,57 @@ console.log(setSavedViews)
                             }}
                           />
                           <Menu>
-                            <MenuButton as={IconButton} icon={<MoreVertical size={14} />} size="sm" variant="ghost" />
+                            <MenuButton
+                              as={IconButton}
+                              icon={<MoreVertical size={14} />}
+                              size="sm"
+                              variant="ghost"
+                            />
                             <MenuList>
-                              <MenuItem onClick={() => updateOrderStatus(order.id, 'processing')}>
-                                เปลี่ยนเป็น "กำลังจัดเตรียม"
+                              <MenuItem
+                                onClick={() =>
+                                  updateOrderStatus(
+                                    order._id,
+                                    "Processing",
+                                    "ກຳລັງກຽມສິນຄ້າແລະແພ໋ກສຶນຄ້າ"
+                                  )
+                                }
+                              >
+                                ປ່ຽນເປັນ "ກຳລັງກຽມ"
                               </MenuItem>
-                              <MenuItem onClick={() => updateOrderStatus(order.id, 'shipped')}>
-                                เปลี่ยนเป็น "กำลังจัดส่ง"
+                              <MenuItem
+                                onClick={() =>
+                                  updateOrderStatus(
+                                    order._id,
+                                    "Shipped",
+                                    "ສິນຄ້າອອກຈາກສາງກຳລັງຈັດສົ່ງໃຫ່ຜູ້ບໍລິການຂົນສົ່ງ"
+                                  )
+                                }
+                              >
+                                ປ່ຽນເປັນ "ກຳລັງຈັດສົ່ງ"
                               </MenuItem>
-                              <MenuItem onClick={() => updateOrderStatus(order.id, 'delivered')}>
-                                เปลี่ยนเป็น "จัดส่งแล้ว"
+                              <MenuItem
+                                onClick={() =>
+                                  updateOrderStatus(
+                                    order._id,
+                                    "Delivered",
+                                    " ສິນຄ້າໄດ້ຮັບການຈັດສົ່ງສຳເລັດໃຫ້ກັບຜູ້ບໍລິການຂົນສົ່ງ"
+                                  )
+                                }
+                              >
+                                ປ່ຽນເປັນ "ຈັດສົ່ງແລ້ວ"
                               </MenuItem>
-                              <MenuItem onClick={() => updateOrderStatus(order.id, 'cancelled')} color="red.500">
-                                ยกเลิกคำสั่งซื้อ
+                              <MenuItem
+                                onClick={() =>
+                                  updateOrderStatus(
+                                    order._id,
+                                    "Cancelled",
+                                    "ຄຳສັ່ງຊື້ຂອງທ່ານຖືກຍົກເລີກ ກຳລັງດຳເນີນການຄືນເງິນພາຍໃນ 1-3ຊົ່ວໂມງ"
+                                  )
+                                }
+                                color="red.500"
+                              >
+                                ຍົກເລີກຄຳສັ່ງຊື້
                               </MenuItem>
                             </MenuList>
                           </Menu>
@@ -709,15 +843,15 @@ console.log(setSavedViews)
             </Box>
           ) : (
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-              {filteredOrders.map(order => (
+              {filteredOrders?.map((order) => (
                 <OrderCard key={order.id} order={order} />
               ))}
             </SimpleGrid>
           )}
 
-          {filteredOrders.length === 0 && (
+          {filteredOrders?.length === 0 && (
             <Box textAlign="center" py={10}>
-              <Text color="gray.500">ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไขการค้นหา</Text>
+              <Text color="gray.500">ບໍ່ພົບຄຳສັ່ງຊື້ທີ່ຄົ້ນຫາ</Text>
             </Box>
           )}
         </CardBody>
@@ -730,46 +864,64 @@ console.log(setSavedViews)
           <ModalHeader>
             <VStack justify="space-between" w="full" pr={8}>
               <VStack align="start" spacing={1}>
-                <Text>รายละเอียดคำสั่งซื้อ {selectedOrder?.id}</Text>
+                <Text>ລາຍລະອຽດຄຳສັ່ງຊື້ {selectedOrder?.id}</Text>
                 <HStack>
-                  {selectedOrder && getStatusBadge(selectedOrder.status)}
-                  {selectedOrder && getPaymentBadge(selectedOrder.paymentStatus)}
+                  {selectedOrder && selectedOrder.status}
+                  {selectedOrder &&
+                    getPaymentBadge(selectedOrder.paymentStatus)}
                 </HStack>
               </VStack>
               <HStack>
                 <Menu>
-                  <MenuButton as={Button} size="sm" leftIcon={<Edit size={14} />}>
-                    เปลี่ยนสถานะ
+                  <MenuButton
+                    as={Button}
+                    size="sm"
+                    leftIcon={<Edit size={14} />}
+                  >
+                    ປ່ຽນສະຖານະ
                   </MenuButton>
                   <MenuList>
-                    <MenuItem onClick={() => {
-                      updateOrderStatus(selectedOrder.id, 'processing');
-                      onDetailClose();
-                    }}>
-                      เปลี่ยนเป็น "กำลังจัดเตรียม"
+                    <MenuItem
+                      onClick={() => {
+                        updateOrderStatus(selectedOrder._id, "processing");
+                        onDetailClose();
+                      }}
+                    >
+                      ປ່ຽນເປັນ ກຳລັງຈັດກຽມ
                     </MenuItem>
-                    <MenuItem onClick={() => {
-                      updateOrderStatus(selectedOrder.id, 'shipped');
-                      onDetailClose();
-                    }}>
-                      เปลี่ยนเป็น "กำลังจัดส่ง"
+                    <MenuItem
+                      onClick={() => {
+                        updateOrderStatus(selectedOrder._id, "shipped");
+                        onDetailClose();
+                      }}
+                    >
+                      ປ່ຽນເປັນ ກຳລັງຈັດສົ່ງ
                     </MenuItem>
-                    <MenuItem onClick={() => {
-                      updateOrderStatus(selectedOrder.id, 'delivered');
-                      onDetailClose();
-                    }}>
-                      เปลี่ยนเป็น "จัดส่งแล้ว"
+                    <MenuItem
+                      onClick={() => {
+                        updateOrderStatus(selectedOrder._id, "delivered");
+                        onDetailClose();
+                      }}
+                    >
+                      ປ່ຽນເປັນ ຈັດສົ່ງແລ້ວ
                     </MenuItem>
-                    <MenuItem onClick={() => {
-                      updateOrderStatus(selectedOrder.id, 'cancelled');
-                      onDetailClose();
-                    }} color="red.500">
-                      ยกเลิกคำสั่งซื้อ
+                    <MenuItem
+                      onClick={() => {
+                        updateOrderStatus(selectedOrder._id, "cancelled");
+                        onDetailClose();
+                      }}
+                      color="red.500"
+                    >
+                      ຍົກເລີກຄຳສັ່ງຊື້
                     </MenuItem>
                   </MenuList>
                 </Menu>
-                <Button size="sm" leftIcon={<MessageSquare size={14} />} onClick={onNoteOpen}>
-                  เพิ่มหมายเหตุ
+                <Button
+                  size="sm"
+                  leftIcon={<MessageSquare size={14} />}
+                  onClick={onNoteOpen}
+                >
+                  ເພີ່ມໝາຍເຫດ
                 </Button>
               </HStack>
             </VStack>
@@ -779,12 +931,12 @@ console.log(setSavedViews)
             {selectedOrder && (
               <Tabs>
                 <TabList>
-                  <Tab>ข้อมูลทั่วไป</Tab>
-                  <Tab>รายการสินค้า</Tab>
-                  <Tab>ไทม์ไลน์</Tab>
-                  <Tab>หมายเหตุ ({selectedOrder.notes?.length || 0})</Tab>
-                  <Tab>การคืนเงิน</Tab>
-                  <Tab>เอกสาร</Tab>
+                  <Tab>ຂໍ້ມູນທົ່ວໄປ</Tab>
+                  <Tab>ລາຍການສິນຄ້າ</Tab>
+                  <Tab>ທາມລາຍ</Tab>
+                  <Tab>ໝາຍເຫດ ({selectedOrder?.notes?.length || 0})</Tab>
+                  <Tab>ການຄືນເງິນ</Tab>
+                  <Tab>ເອກະສານ</Tab>
                 </TabList>
 
                 <TabPanels>
@@ -794,20 +946,29 @@ console.log(setSavedViews)
                       {/* Customer Info */}
                       <Card>
                         <CardHeader>
-                          <Text fontSize="lg" fontWeight="bold">ข้อมูลลูกค้า</Text>
+                          <Text fontSize="lg" fontWeight="bold">
+                            ຂໍ້ມູນລູກຄ້າ
+                          </Text>
                         </CardHeader>
                         <CardBody>
                           <VStack align="start" spacing={3}>
                             <HStack>
-                              <Avatar size="sm" name={selectedOrder.customer.name} />
+                              <Avatar
+                                size="sm"
+                                name={selectedOrder?.user_id?.username}
+                              />
                               <VStack align="start" spacing={0}>
-                                <Text fontWeight="bold">{selectedOrder.customer.name}</Text>
-                                <Text fontSize="sm" color="gray.600">{selectedOrder.customer.email}</Text>
+                                <Text fontWeight="bold">
+                                  {selectedOrder?.user_id?.username}
+                                </Text>
+                                <Text fontSize="sm" color="gray.600">
+                                  {selectedOrder?.user_id?.email}
+                                </Text>
                               </VStack>
                             </HStack>
                             <HStack>
                               <Phone size={16} />
-                              <Text>{selectedOrder.customer.phone}</Text>
+                              <Text>{selectedOrder?.user_id?.phone}</Text>
                             </HStack>
                           </VStack>
                         </CardBody>
@@ -816,15 +977,21 @@ console.log(setSavedViews)
                       {/* Store Info */}
                       <Card>
                         <CardHeader>
-                          <Text fontSize="lg" fontWeight="bold">ข้อมูลร้านค้า</Text>
+                          <Text fontSize="lg" fontWeight="bold">
+                            ຂໍ້ມູນຮ້ານຄ້າ
+                          </Text>
                         </CardHeader>
                         <CardBody>
                           <VStack align="start" spacing={3}>
                             <HStack>
                               <Store size={16} />
-                              <Text fontWeight="bold">{selectedOrder.store.name}</Text>
+                              <Text fontWeight="bold">
+                                {selectedOrder?.sellers[0]?.store_name}
+                              </Text>
                             </HStack>
-                            <Text fontSize="sm" color="gray.600">รหัสร้าน: {selectedOrder.store.id}</Text>
+                            <Text fontSize="sm" color="gray.600">
+                              ລະຫັດຮ້ານ: {selectedOrder?.sellers[0]?.store_code}
+                            </Text>
                           </VStack>
                         </CardBody>
                       </Card>
@@ -832,18 +999,70 @@ console.log(setSavedViews)
                       {/* Shipping Address */}
                       <Card>
                         <CardHeader>
-                          <Text fontSize="lg" fontWeight="bold">ที่อยู่จัดส่ง</Text>
+                          <Text fontSize="lg" fontWeight="bold">
+                            ທີ່ຢູ່ຈັດສົ່ງ
+                          </Text>
                         </CardHeader>
                         <CardBody>
                           <VStack align="start" spacing={2}>
-                            <HStack align="start">
-                              <MapPin size={16} style={{ marginTop: '2px' }} />
-                              <VStack align="start" spacing={1}>
-                                <Text>{selectedOrder.shippingAddress.address}</Text>
-                                <Text>{selectedOrder.shippingAddress.district}</Text>
-                                <Text>{selectedOrder.shippingAddress.province} {selectedOrder.shippingAddress.zipcode}</Text>
-                              </VStack>
-                            </HStack>
+                            <Box
+                              border="1px"
+                              borderColor="gray.200"
+                              rounded="2xl"
+                              p={4}
+                              bg="white"
+                              shadow="md"
+                              _hover={{
+                                shadow: "lg",
+                                transform: "translateY(-2px)",
+                                transition: "0.2s",
+                              }}
+                            >
+                              <HStack align="start" spacing={3}>
+                                <Box
+                                  p={2}
+                                  rounded="full"
+                                  bg="blue.50"
+                                  color="blue.600"
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                >
+                                  <MapPin size={18} />
+                                </Box>
+
+                                <VStack align="start" spacing={1} w="full">
+                                  <HStack spacing={2}>
+                                    <Text fontWeight="bold" fontSize="md">
+                                      {selectedOrder?.shippingAddress?.name}
+                                    </Text>
+                                    <Badge colorScheme="blue" fontSize="xs">
+                                      {selectedOrder?.shippingAddress?.phone}
+                                    </Badge>
+                                  </HStack>
+
+                                  <Divider />
+
+                                  <Text fontSize="sm" color="gray.700">
+                                    {selectedOrder?.shippingAddress?.village},{" "}
+                                    {selectedOrder?.shippingAddress?.district},{" "}
+                                    {selectedOrder?.shippingAddress?.province}
+                                  </Text>
+
+                                  <HStack spacing={2} pt={1}>
+                                    <Badge colorScheme="green" variant="subtle">
+                                      {
+                                        selectedOrder?.shippingAddress
+                                          ?.transportCompany
+                                      }
+                                    </Badge>
+                                    <Text fontSize="sm" color="gray.600">
+                                      {selectedOrder?.shippingAddress?.branch}
+                                    </Text>
+                                  </HStack>
+                                </VStack>
+                              </HStack>
+                            </Box>
                           </VStack>
                         </CardBody>
                       </Card>
@@ -851,29 +1070,99 @@ console.log(setSavedViews)
                       {/* Order Summary */}
                       <Card>
                         <CardHeader>
-                          <Text fontSize="lg" fontWeight="bold">สรุปคำสั่งซื้อ</Text>
+                          <Text fontSize="lg" fontWeight="bold">
+                            ສະຫຼຸບຄຳສັ່ງຊື້
+                          </Text>
                         </CardHeader>
+
                         <CardBody>
-                          <VStack align="start" spacing={3}>
+                          <VStack align="start" spacing={3} w="full">
+                            {/* วันที่สั่งซื้อ */}
                             <HStack justify="space-between" w="full">
-                              <Text>วันที่สั่งซื้อ:</Text>
-                              <Text>{new Date(selectedOrder.orderDate).toLocaleString('th-TH')}</Text>
-                            </HStack>
-                            <HStack justify="space-between" w="full">
-                              <Text>ยอดรวม:</Text>
-                              <Text fontWeight="bold" color="green.600" fontSize="lg">
-                                ฿{selectedOrder.total.toLocaleString()}
+                              <Text>ວັນທີ່ສັ່ງຊື້:</Text>
+                              <Text>
+                                {new Date(
+                                  selectedOrder?.createdAt
+                                ).toLocaleString("th-TH")}
                               </Text>
                             </HStack>
+
+                            {/* ยอดรวม */}
                             <HStack justify="space-between" w="full">
-                              <Text>จำนวนรายการ:</Text>
-                              <Text>{selectedOrder.items.length} รายการ</Text>
+                              <Text>ຍອດລວມ:</Text>
+                              <Text
+                                fontWeight="bold"
+                                color="green.600"
+                                fontSize="lg"
+                              >
+                                LAK {selectedOrder?.total?.toLocaleString()}
+                              </Text>
                             </HStack>
-                            {selectedOrder.flags.length > 0 && (
+
+                            {/* จำนวนรายการ */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ຈຳນວນລາຍການ:</Text>
+                              <Text>{selectedOrder?.items?.length} ລາຍການ</Text>
+                            </HStack>
+
+                            {/* Status */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ສະຖານະ:</Text>
+                              <Text color="blue.600" fontWeight="semibold">
+                                {getStatusPayment(selectedOrder?.status)}
+                              </Text>
+                            </HStack>
+
+                            {/* Transaction Id */}
+                            <HStack justify="space-between" w="full">
+                              <Text>Transaction ID:</Text>
+                              <Text>{selectedOrder?.transactionId}</Text>
+                            </HStack>
+
+                            {/* Payment Method */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ວິທີຊຳລະ:</Text>
+                              <Text>{selectedOrder?.paymentMethod}</Text>
+                            </HStack>
+
+                            {/* Payment Time */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ເວລາຊຳລະ:</Text>
+                              <Text>
+                                {selectedOrder?.payment_time &&
+                                  new Date(
+                                    selectedOrder?.payment_time
+                                  ).toLocaleString("th-TH")}
+                              </Text>
+                            </HStack>
+
+                            {/* Reference No */}
+                            <HStack justify="space-between" w="full">
+                              <Text>Reference No:</Text>
+                              <Text>
+                                {selectedOrder?.exReferenceNo ||
+                                  selectedOrder?.refNo}
+                              </Text>
+                            </HStack>
+
+                            {/* Source Name */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ຊື່ຜູ້ໂອນ:</Text>
+                              <Text>{selectedOrder?.sourceName}</Text>
+                            </HStack>
+
+                            {/* Source Account */}
+                            <HStack justify="space-between" w="full">
+                              <Text>ບັນຊີຜູ້ໂອນ:</Text>
+                              <Text>{selectedOrder?.sourceAccount}</Text>
+                            </HStack>
+
+                            {/* Flags */}
+                            {selectedOrder?.flags?.length > 0 && (
                               <Box w="full">
-                                <Text mb={2}>แจ้งเตือน:</Text>
+                                <Text mb={2}>ແຈ້ງເຕືອນ:</Text>
                                 <Wrap>
-                                  {selectedOrder.flags.map(flag => (
+                                  {selectedOrder?.flags?.map((flag) => (
                                     <WrapItem key={flag}>
                                       {getFlagBadge(flag)}
                                     </WrapItem>
@@ -891,35 +1180,117 @@ console.log(setSavedViews)
                   <TabPanel>
                     <Card>
                       <CardHeader>
-                        <Text fontSize="lg" fontWeight="bold">รายการสินค้า</Text>
+                        <Text fontSize="lg" fontWeight="bold">
+                          ລາຍການສິນຄ້າ
+                        </Text>
                       </CardHeader>
                       <CardBody>
                         <Table variant="simple">
                           <Thead>
                             <Tr>
-                              <Th>สินค้า</Th>
-                              <Th>จำนวน</Th>
-                              <Th>ราคาต่อหน่วย</Th>
-                              <Th>ราคารวม</Th>
+                              <Th fontFamily={"Noto Sans Lao, serif"}>
+                                ລະຫັດສິນຄ້າ
+                              </Th>
+                              <Th fontFamily={"Noto Sans Lao, serif"}>
+                                ສິນຄ້າ
+                              </Th>
+                              <Th fontFamily={"Noto Sans Lao, serif"}>ຈຳນວນ</Th>
+                              <Th fontFamily={"Noto Sans Lao, serif"}>
+                                ລາຄາຕໍ່ໜ່ວຍ
+                              </Th>
+                              <Th fontFamily={"Noto Sans Lao, serif"}>
+                                ລາຄາລວມ
+                              </Th>
                             </Tr>
                           </Thead>
                           <Tbody>
-                            {selectedOrder.items.map((item, index) => (
+                            {selectedOrder?.items?.map((item, index) => (
                               <Tr key={index}>
-                                <Td>{item.name}</Td>
-                                <Td>{item.quantity}</Td>
-                                <Td>฿{item.price.toLocaleString()}</Td>
-                                <Td fontWeight="bold">฿{(item.price * item.quantity).toLocaleString()}</Td>
+                                <Td>#{item?.productId.orderId}</Td>
+                                <Td>{item?.productId.name}</Td>
+                                <Td>{item?.quantity}</Td>
+                                <Td>LAK {item?.price?.toLocaleString()}</Td>
+                                <Td fontWeight="bold">
+                                  LAK
+                                  {(
+                                    item?.price * item?.quantity
+                                  ).toLocaleString()}
+                                </Td>
                               </Tr>
                             ))}
                           </Tbody>
                         </Table>
                         <Divider my={4} />
-                        <HStack justify="space-between">
-                          <Text fontSize="lg" fontWeight="bold">ยอดรวมทั้งสิ้น:</Text>
-                          <Text fontSize="lg" fontWeight="bold" color="green.600">
-                            ฿{selectedOrder.total.toLocaleString()}
+                        <HStack
+                          bg="white"
+                          rounded="2xl"
+                          shadow="md"
+                          p={5}
+                          border="1px"
+                          borderColor="gray.200"
+                          maxW="md"
+                          mx="auto"
+                          justify="space-between"
+                        >
+                          {/* หัวข้ออยู่บนสุด */}
+                          <Text fontSize="xl" fontWeight="bold" mb={4}>
+                            ສະຫຼຸບຍອດຊຳລະ
                           </Text>
+
+                          {/* เนื้อหา */}
+                          <VStack spacing={2} align="stretch">
+                            <HStack justify="space-between">
+                              <Text color="gray.600">ລາຄາສິນຄ້າລວມ</Text>
+                              <Text fontWeight="medium">
+                                LAK {selectedOrder.subtotal.toLocaleString()}
+                              </Text>
+                            </HStack>
+
+                            <HStack justify="space-between">
+                              <Text color="gray.600">ສ່ວນຫຼຸດ</Text>
+                              <Text fontWeight="medium" color="red.500">
+                                - LAK {selectedOrder.discount.toLocaleString()}
+                              </Text>
+                            </HStack>
+
+                            <HStack justify="space-between">
+                              <Text color="gray.600">ຄ່າຂົນສົ່ງ</Text>
+                              <Text fontWeight="medium">
+                                LAK{" "}
+                                {selectedOrder.shippingCost.toLocaleString()}
+                              </Text>
+                            </HStack>
+
+                            <HStack justify="space-between">
+                              <Text color="gray.600">ຄ່າທຳນຽມລະບົບ</Text>
+                              <Text fontWeight="medium">
+                                LAK {selectedOrder.fee_system.toLocaleString()}
+                              </Text>
+                            </HStack>
+
+                            <Divider />
+
+                            <HStack justify="space-between">
+                              <Text fontWeight="semibold">ຍອດລວມຫຼັງຫັກ</Text>
+                              <Text fontWeight="semibold">
+                                LAK{" "}
+                                {selectedOrder.total_summary.toLocaleString()}
+                              </Text>
+                            </HStack>
+
+                            <HStack justify="space-between" pt={2}>
+                              <Text fontSize="lg" fontWeight="bold">
+                                ຍອດທັງໝົດ:
+                              </Text>
+                              <Text
+                                fontSize="lg"
+                                fontWeight="bold"
+                                color="green.600"
+                              >
+                                LAK {selectedOrder.total.toLocaleString()}
+                              </Text>
+                            </HStack>
+                          </VStack>
                         </HStack>
                       </CardBody>
                     </Card>
@@ -929,15 +1300,20 @@ console.log(setSavedViews)
                   <TabPanel>
                     <Card>
                       <CardHeader>
-                        <Text fontSize="lg" fontWeight="bold">ไทม์ไลน์คำสั่งซื้อ</Text>
+                        <Text fontSize="lg" fontWeight="bold">
+                          ທາມລາຍຄຳສັ່ງຊື້
+                        </Text>
                       </CardHeader>
                       <CardBody>
                         <VStack align="start" spacing={4} w="full">
-                          {selectedOrder.timeline.map((step, index) => (
-                            <TimelineStep 
-                              key={index} 
-                              step={step} 
-                              isLast={index === selectedOrder.timeline.length - 1} 
+                          {selectedOrder?.deliverySteps?.map((step, index) => (
+                            <TimelineStep
+                              key={index}
+                              step={step}
+                              isLast={
+                                index ===
+                                selectedOrder?.deliverySteps?.length - 1
+                              }
                             />
                           ))}
                         </VStack>
@@ -948,18 +1324,21 @@ console.log(setSavedViews)
                   {/* Notes Tab */}
                   <TabPanel>
                     <VStack spacing={4} align="start" w="full">
-                      {selectedOrder.notes && selectedOrder.notes.length > 0 ? (
-                        selectedOrder.notes.map(note => (
+                      {selectedOrder?.notes &&
+                      selectedOrder?.notes?.length > 0 ? (
+                        selectedOrder?.notes?.map((note) => (
                           <Card key={note.id} w="full">
                             <CardBody>
                               <VStack align="start" spacing={2}>
                                 <HStack justify="space-between" w="full">
                                   <Text fontWeight="bold">{note.author}</Text>
                                   <Text fontSize="sm" color="gray.600">
-                                    {new Date(note.date).toLocaleString('th-TH')}
+                                    {new Date(note?.date).toLocaleString(
+                                      "th-TH"
+                                    )}
                                   </Text>
                                 </HStack>
-                                <Text>{note.text}</Text>
+                                <Text>{note?.text}</Text>
                               </VStack>
                             </CardBody>
                           </Card>
@@ -967,8 +1346,10 @@ console.log(setSavedViews)
                       ) : (
                         <Alert status="info">
                           <AlertIcon />
-                          <AlertTitle>ไม่มีหมายเหตุ</AlertTitle>
-                          <AlertDescription>ยังไม่มีหมายเหตุสำหรับคำสั่งซื้อนี้</AlertDescription>
+                          <AlertTitle>ບໍ່ມີໝາຍເຫດ</AlertTitle>
+                          <AlertDescription>
+                            ຍັງບໍ່ມີໝາຍເຫດສຳຫລັບຄຳສັ່ງຊື້ນີ້
+                          </AlertDescription>
                         </Alert>
                       )}
                     </VStack>
@@ -978,37 +1359,58 @@ console.log(setSavedViews)
                   <TabPanel>
                     <Card>
                       <CardHeader>
-                        <Text fontSize="lg" fontWeight="bold">การคืนเงิน</Text>
+                        <Text fontSize="lg" fontWeight="bold">
+                          ການຄືນເງິນ
+                        </Text>
                       </CardHeader>
                       <CardBody>
                         {selectedOrder.refund ? (
                           <VStack align="start" spacing={4}>
                             <HStack justify="space-between" w="full">
-                              <Text>จำนวนเงินที่คืน:</Text>
+                              <Text>ຈຳນວນເງິນທີ່ຄືນ:</Text>
                               <Text fontWeight="bold" color="red.500">
-                                ฿{selectedOrder.refund.amount.toLocaleString()}
+                                LAK{" "}
+                                {selectedOrder?.refund?.amount?.toLocaleString()}
                               </Text>
                             </HStack>
                             <HStack justify="space-between" w="full">
-                              <Text>สถานะ:</Text>
-                              <Badge colorScheme={selectedOrder.refund.status === 'completed' ? 'green' : 'orange'}>
-                                {selectedOrder.refund.status === 'completed' ? 'คืนเงินแล้ว' : 'กำลังดำเนินการ'}
+                              <Text>ສະຖານະ:</Text>
+                              <Badge
+                                colorScheme={
+                                  selectedOrder?.refund?.status === "completed"
+                                    ? "green"
+                                    : "orange"
+                                }
+                              >
+                                {selectedOrder?.refund?.status === "completed"
+                                  ? "ຄືນເງິນແລ້ວ"
+                                  : "ກຳລັງດຳເນີນການ"}
                               </Badge>
                             </HStack>
                             <HStack justify="space-between" w="full">
-                              <Text>วันที่คืนเงิน:</Text>
-                              <Text>{new Date(selectedOrder.refund.date).toLocaleString('th-TH')}</Text>
+                              <Text>ວັນທີ່ຄືນເງິນ:</Text>
+                              <Text>
+                                {new Date(
+                                  selectedOrder?.refund?.date
+                                )?.toLocaleString("th-TH")}
+                              </Text>
                             </HStack>
                           </VStack>
                         ) : (
                           <VStack spacing={4}>
                             <Alert status="info">
                               <AlertIcon />
-                              <AlertTitle>ไม่มีการคืนเงิน</AlertTitle>
-                              <AlertDescription>คำสั่งซื้อนี้ยังไม่มีการร้องขอคืนเงิน</AlertDescription>
+                              <AlertTitle>ບໍ່ມີການຄືນເງິນ</AlertTitle>
+                              <AlertDescription>
+                                ຄຳສັ່ງຊື້ນີ້ຍັງບໍ່ມີການຮ້ອງຂໍຄືນເງິນ
+                              </AlertDescription>
                             </Alert>
-                            <Button colorScheme="red" size="sm" leftIcon={<DollarSign size={14} />}>
-                              สร้างคำขอคืนเงิน
+                            <Button
+                              colorScheme="red"
+                              size="sm"
+                              leftIcon={<DollarSign size={14} />}
+                            >
+                              ສ້າງຄຳຂໍຄືນເງິນ
                             </Button>
                           </VStack>
                         )}
@@ -1019,31 +1421,58 @@ console.log(setSavedViews)
                   {/* Documents Tab */}
                   <TabPanel>
                     <Card>
-                      <CardHeader>
+                      {/* <CardHeader>
                         <HStack justify="space-between">
-                          <Text fontSize="lg" fontWeight="bold">เอกสารและไฟล์แนบ</Text>
+                          <Text fontSize="lg" fontWeight="bold">
+                            ເອກະສານແນບ
+                          </Text>
                           <Button size="sm" leftIcon={<Upload size={14} />}>
-                            อัปโหลดไฟล์
+                            ອັບໂຫລດເອກະສານ
                           </Button>
                         </HStack>
-                      </CardHeader>
+                      </CardHeader> */}
                       <CardBody>
                         <VStack spacing={4} align="start">
-                          <Alert status="info">
+                          {/* <Alert status="info">
                             <AlertIcon />
-                            <AlertTitle>ไม่มีเอกสาร</AlertTitle>
-                            <AlertDescription>ยังไม่มีเอกสารที่แนบมากับคำสั่งซื้อนี้</AlertDescription>
-                          </Alert>
-                          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} w="full">
-                            <Button leftIcon={<FileText size={16} />} variant="outline">
-                              ใบเสร็จ/ใบกำกับภาษี
+                            <AlertTitle>ບໍ່ມີເອກະສານ</AlertTitle>
+                            <AlertDescription>
+                              ຍັງບໍ່ມີເອກະສານທີ່ແນບກັບຄຳສັ່ງຊື້ນີ້
+                            </AlertDescription>
+                          </Alert> */}
+                          <SimpleGrid
+                            columns={{ base: 1, md: 3 }}
+                            spacing={4}
+                            w="full"
+                          >
+                            {/* <Button
+                              leftIcon={<FileText size={16} />}
+                              variant="outline"
+                            >
+                              ໃບກຳກັບພາສີ
                             </Button>
-                            <Button leftIcon={<Camera size={16} />} variant="outline">
-                              รูปสินค้าก่อนจัดส่ง
-                            </Button>
-                            <Button leftIcon={<Package size={16} />} variant="outline">
-                              ใบปะหน้ากล่องพัสดุ
-                            </Button>
+                            <Button
+                              leftIcon={<Camera size={16} />}
+                              variant="outline"
+                            >
+                              ຮູບສິນຄ້າກ່ອນຈັດສົ່ງ
+                            </Button> */}
+                            <Link
+                              href={selectedOrder?.imagesShipping}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              _hover={{ textDecoration: "none" }}
+                            >
+                              <Button
+                                leftIcon={<Package size={16} />}
+                                variant="outline"
+                                w="full"
+                                isDisabled={!selectedOrder?.imagesShipping}
+                              >
+                                ໃບປະໜ້າກ່ອງພັດສະດຸ{" "}
+                                {selectedOrder?.trackingNumber || ""}
+                              </Button>
+                            </Link>
                           </SimpleGrid>
                         </VStack>
                       </CardBody>
@@ -1063,13 +1492,13 @@ console.log(setSavedViews)
       <Modal isOpen={isNoteOpen} onClose={onNoteClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>เพิ่มหมายเหตุ</ModalHeader>
+          <ModalHeader>ເພີ່ມໝາຍເຫດ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <FormControl>
-              <FormLabel>หมายเหตุ</FormLabel>
+              <FormLabel>ໝາຍເຫດ</FormLabel>
               <Textarea
-                placeholder="ใส่หมายเหตุของคุณที่นี่..."
+                placeholder="ໃສ່ໝາຍເຫດທີ່ນີ້..."
                 rows={4}
                 id="note-textarea"
               />
@@ -1077,17 +1506,20 @@ console.log(setSavedViews)
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onNoteClose}>
-              ยกเลิก
+              ຍົກເລີກ
             </Button>
-            <Button colorScheme="blue" onClick={() => {
-              const textarea = document.getElementById('note-textarea');
-              if (textarea && selectedOrder) {
-                addNote(selectedOrder.id, textarea.value);
-                textarea.value = '';
-                onNoteClose();
-              }
-            }}>
-              บันทึก
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                const textarea = document.getElementById("note-textarea");
+                if (textarea && selectedOrder) {
+                  addNote(selectedOrder.id, textarea.value);
+                  textarea.value = "";
+                  onNoteClose();
+                }
+              }}
+            >
+              ບັນທຶກ
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1097,73 +1529,99 @@ console.log(setSavedViews)
       <Modal isOpen={isFilterOpen} onClose={onFilterClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>ตัวกรองขั้นสูง</ModalHeader>
+          <ModalHeader>ຕົວກຣອງຂັ້ນສູງ</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4} align="start">
               <SimpleGrid columns={2} spacing={4} w="full">
                 <FormControl>
-                  <FormLabel>วันที่เริ่มต้น</FormLabel>
+                  <FormLabel>ວັນທີ່ເລີ່ມຕົ້ນ</FormLabel>
                   <Input
                     type="date"
                     value={filters.dateFrom}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        dateFrom: e.target.value,
+                      }))
+                    }
                   />
                 </FormControl>
                 <FormControl>
-                  <FormLabel>วันที่สิ้นสุด</FormLabel>
+                  <FormLabel>ວັນທີ່ສິ້ນສຸດ</FormLabel>
                   <Input
                     type="date"
                     value={filters.dateTo}
-                    onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value }))}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        dateTo: e.target.value,
+                      }))
+                    }
                   />
                 </FormControl>
               </SimpleGrid>
               <FormControl>
-                <FormLabel>ร้านค้า</FormLabel>
+                <FormLabel>ຮ້ານຄ້າ</FormLabel>
                 <Input
-                  placeholder="ชื่อร้านค้า"
+                  placeholder="ຊື່ຮ້ານຄ້າ"
                   value={filters.store}
-                  onChange={(e) => setFilters(prev => ({ ...prev, store: e.target.value }))}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, store: e.target.value }))
+                  }
                 />
               </FormControl>
               <FormControl>
-                <FormLabel>ยอดขายขั้นต่ำ (บาท)</FormLabel>
+                <FormLabel>ຍອດຂາຍຂັ້ນຕໍ່າ (LAK)</FormLabel>
                 <Input
                   type="number"
                   placeholder="0"
-                  value={filters.minAmount || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, minAmount: e.target.value }))}
+                  value={filters.minAmount || ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      minAmount: e.target.value,
+                    }))
+                  }
                 />
               </FormControl>
               <FormControl>
-                <FormLabel>ยอดขายสูงสุด (บาท)</FormLabel>
+                <FormLabel>ຍອດຂາຍສູງສຸດ (LAK)</FormLabel>
                 <Input
                   type="number"
-                  placeholder="ไม่จำกัด"
-                  value={filters.maxAmount || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxAmount: e.target.value }))}
+                  placeholder="ບໍ່ຈຳກັດ"
+                  value={filters.maxAmount || ""}
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      maxAmount: e.target.value,
+                    }))
+                  }
                 />
               </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={() => {
-              setFilters({
-                search: '',
-                status: '',
-                dateFrom: '',
-                dateTo: '',
-                store: '',
-                paymentStatus: '',
-                minAmount: '',
-                maxAmount: ''
-              });
-            }}>
-              ล้างทั้งหมด
+            <Button
+              variant="ghost"
+              mr={3}
+              onClick={() => {
+                setFilters({
+                  search: "",
+                  status: "",
+                  dateFrom: "",
+                  dateTo: "",
+                  store: "",
+                  paymentStatus: "",
+                  minAmount: "",
+                  maxAmount: "",
+                });
+              }}
+            >
+              ລ້າງທັງໝົດ
             </Button>
             <Button colorScheme="blue" onClick={onFilterClose}>
-              ใช้ตัวกรอง
+              ໃຊ້ຕົວກຣອງ
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -17,6 +17,7 @@ export const add_product = createAsyncThunk(
       formData.append("brand", productData.brand);
       formData.append("sku", productData.sku);
       formData.append("is_featured", productData.is_featured);
+      formData.append(" orginalPrice", productData.orginalPrice);
 
       // ✅ แนบ array เช่น tags, size, colors
       productData.tags.forEach((tag) => formData.append("tags[]", tag));
@@ -69,8 +70,6 @@ export const update_product = createAsyncThunk(
     try {
       const formData = new FormData();
 
-      productData.images.map((i) => console.log(i));
-
       formData.append("name", productData.name);
       formData.append("description", productData.description);
       formData.append("price", productData.price);
@@ -81,8 +80,9 @@ export const update_product = createAsyncThunk(
       formData.append("brand", productData.brand);
       formData.append("sku", productData.sku);
       formData.append("is_featured", productData.is_featured);
+      formData.append("orginalPrice", productData.orginalPrice);
 
-      // ✅ แนบ array เช่น tags, size, colors
+      // ✅ แนบ array เช่น tags, size, colors  
       productData.tags.forEach((tag) => formData.append("tags[]", tag));
       productData.size.forEach((s) => formData.append("size[]", s));
       productData.colors.forEach((c) => formData.append("colors[]", c));
@@ -119,9 +119,9 @@ export const update_product = createAsyncThunk(
           formData.append("images", img); // แนบเฉพาะไฟล์ใหม่
         }
       });
-      for (let pair of formData.entries()) {
+       for (let pair of formData.entries()) {
         console.log(pair[0], pair[1]);
-      }
+       }
       const { data } = await api.patch(
         `/sellers/update-products/${productData?._id}`,
         formData,
@@ -135,7 +135,6 @@ export const update_product = createAsyncThunk(
 
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error);
       return rejectWithValue(error.response?.data || error.message);
     }
   }
@@ -210,6 +209,73 @@ export const notication = createAsyncThunk(
     }
   }
 );
+///get_order
+export const get_order = createAsyncThunk(
+  "sellers/get_order",
+  async (_, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.get(`/sellers/get_order`, {
+        withCredentials: true,
+      });
+      console.log(data);
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+///update status shipping
+export const update_tracking = createAsyncThunk(
+  "sellers/update_tracking",
+  async (data_tracking, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("trackingNumber", data_tracking.trackingNumber);
+      formData.append("imagesShipping", data_tracking.imagesShipping);
+      const { data } = await api.patch(
+        `/sellers/update_tracking/${data_tracking.orderId}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          withCredentials: true,
+        }
+      );
+
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+///update_tracking
+export const update_status_shipping = createAsyncThunk(
+  "sellers/update_status_shipping",
+  async (
+    { id, shipping_status, step, note },
+    { rejectWithValue, fulfillWithValue }
+  ) => {
+    try {
+      const { data } = await api.patch(
+        `/sellers/update-status-shipping/${id}`,
+        {
+          shipping_status,
+          step,
+          note,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 export const provider_sellers = createSlice({
   name: "provider_sellers",
   initialState: {
@@ -217,6 +283,8 @@ export const provider_sellers = createSlice({
     errorMessage: "",
     loader: false,
     product: [],
+    get_orders: [],
+    seller_data_orders: {},
   },
   reducers: {
     messageClear: (state) => {
@@ -286,6 +354,43 @@ export const provider_sellers = createSlice({
         state.errorMessage = action.payload.message;
       })
       .addCase(notication.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      // get_order
+      .addCase(get_order.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(get_order.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(get_order.fulfilled, (state, action) => {
+        state.loader = false;
+        state.get_orders = action.payload.data;
+        state.seller_data_orders = action.payload.seller_data_order;
+      })
+      ///shipping_status
+      .addCase(update_status_shipping.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(update_status_shipping.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(update_status_shipping.fulfilled, (state, action) => {
+        state.loader = false;
+        state.successMessage = action.payload.message;
+      })
+      ///update_tracking
+      .addCase(update_tracking.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(update_tracking.rejected, (state, action) => {
+        state.loader = false;
+        state.errorMessage = action.payload.message;
+      })
+      .addCase(update_tracking.fulfilled, (state, action) => {
         state.loader = false;
         state.successMessage = action.payload.message;
       });

@@ -47,6 +47,17 @@ import {
   WrapItem,
   TagLabel,
   FormHelperText,
+  Skeleton,
+  SkeletonText,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverHeader,
+  PopoverBody,
+  PopoverFooter,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverAnchor,
 } from "@chakra-ui/react";
 import {
   ChevronRightIcon,
@@ -56,7 +67,10 @@ import {
   AddIcon,
 } from "@chakra-ui/icons";
 import { useDispatch, useSelector } from "react-redux";
-import { get_category, get_sellers } from "../../hooks/reducer/admin_reducer/provider_reducer";
+import {
+  get_category,
+  get_sellers,
+} from "../../hooks/reducer/admin_reducer/provider_reducer";
 import {
   add_product,
   messageClear,
@@ -68,13 +82,32 @@ import {
 
 const ProductManagement = () => {
   const dispatch = useDispatch();
+  const [loader, setLoader] = useState(false);
+  const toast = useToast();
   useEffect(() => {
-    dispatch(get_category());
-    dispatch(get_product());
-    dispatch(get_sellers())
-  }, [dispatch]);
+    const fetchData = async () => {
+      try {
+        setLoader(true);
+        await Promise.all([
+          dispatch(get_category()),
+          dispatch(get_product()),
+          dispatch(get_sellers()),
+        ]);
+      } catch (error) {
+        toast({
+          title: error || "✅ โหลดข้อมูลสำเร็จ",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setLoader(false);
+      }
+    };
+    fetchData();
+  }, [dispatch, toast]);
 
-  const { loader, successMessage, errorMessage, product, } = useSelector(
+  const { successMessage, errorMessage, product } = useSelector(
     (state) => state.provider_sellers
   );
   const { categoryList } = useSelector((state) => state.provider_reducer);
@@ -90,7 +123,6 @@ const ProductManagement = () => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const toast = useToast();
   const [newTag, setNewTag] = useState("");
   const [newSize, setNewSize] = useState("");
   const [newColor, setNewColor] = useState("");
@@ -104,13 +136,15 @@ const ProductManagement = () => {
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter((product) =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+        product?.name?.toLowerCase()?.includes(searchTerm.toLowerCase())
       );
     }
 
     // Filter by status
     if (statusFilter !== "all") {
-      filtered = filtered.filter((product) => product.status === statusFilter);
+      filtered = filtered?.filter(
+        (product) => product?.status === statusFilter
+      );
     }
 
     setFilteredProducts(filtered);
@@ -146,13 +180,13 @@ const ProductManagement = () => {
   const getStatusText = (status) => {
     switch (status) {
       case "available":
-        return "วางขาย";
+        return "ວາງຈຳໜ່າຍ";
       case "out_of_stock":
-        return "สินค้าหมด";
+        return "ສິນຄ້າໝົດ";
       case "discontinued":
-        return "ยกเลิกจำหน่าย";
+        return "ຍົກເລີກຈຳໜ່າຍ";
       case "temporarily_unavailable":
-        return "หยุดจำหน่ายชั่วคราว";
+        return "ຢຸດຈຳຫນ່າຍຊົ່ວຄາວ";
       default:
         return status;
     }
@@ -172,7 +206,9 @@ const ProductManagement = () => {
       sku: "",
       tags: [],
       size: [],
+      access_products: "",
       colors: [],
+      orginalPrice: 0,
       is_featured: false,
       shipping_info: {
         weight: 0,
@@ -187,48 +223,72 @@ const ProductManagement = () => {
 
   const handleEditProduct = (product) => {
     setSelectedProduct({ ...product });
-    setSelectedImages(product.images || []);
-    setImageFiles(product.images || []);
+    setSelectedImages(product?.images || []);
+    setImageFiles(product?.images || []);
     setIsEditing(true);
     onOpen();
   };
 
   const handleDeleteProduct = (productId) => {
-    console.log("productId", productId);
-    setProducts(products.filter((p) => p.id !== productId));
+    setProducts(products?.filter((p) => p?.id !== productId));
     toast({
-      title: "ลบสินค้าสำเร็จ",
+      title: "ລົບສິນຄ້າສຳເລັດ",
       status: "success",
       duration: 3000,
       isClosable: true,
     });
   };
-console.log(selectedProduct)
   const handleSaveProduct = async () => {
-    
-    const productData = {
-      ...selectedProduct,
-      images: imageFiles,
-    };
-    if (isEditing) {
-      console.log("edit");
-      await dispatch(update_product(productData)).then(() =>
-        dispatch(get_product())
-      );
-    } else {
-      const newProduct = {
-        ...productData,
+    try {
+      // ✅ เพิ่มการ validate ตรงนี้
+      if (
+        !selectedProduct.categoryId ||
+        selectedProduct.categoryId === "" ||
+        typeof selectedProduct.categoryId === "object" ||
+        selectedProduct.categoryId === "[object Object]"
+      ) {
+        toast({
+          title: "ກະລຸນາເລືອກໝວດໝູ່ສິນຄ້າ",
+          description: "ທ່ານຕ້ອງເລືອກໝວດໝູ່ສິນຄ້າທີ່ຖືກຕ້ອງກ່ອນບັນທຶກ",
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+      }
+      setLoader(true);
+      const productData = {
+        ...selectedProduct,
+        images: imageFiles,
       };
-      await dispatch(add_product(newProduct)).then(() =>
-        dispatch(get_product())
-      );
-    }
-     onClose();
-  };
 
+      if (isEditing) {
+        await dispatch(update_product(productData)).then(() =>
+          dispatch(get_product())
+        );
+      } else {
+        const newProduct = {
+          ...productData,
+        };
+        await dispatch(add_product(newProduct)).then(() =>
+          dispatch(get_product())
+        );
+      }
+      onClose();
+    } catch (error) {
+      toast({
+        title: error.message || "ເກີດຂໍ້ຜິດພາດບາງຢ່າງ ກະລຸນາລອງໃໝ່",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setLoader(false);
+  };
+  //setLoader
   const handleToggleTemporaryStatus = async (product) => {
     const isTemporarilyUnavailable =
-      product.status === "temporarily_unavailable";
+      product?.status === "temporarily_unavailable";
 
     const newStatus = isTemporarilyUnavailable
       ? "available"
@@ -236,7 +296,7 @@ console.log(selectedProduct)
 
     try {
       await dispatch(
-        update_status({ id: product._id, status: newStatus })
+        update_status({ id: product?._id, status: newStatus })
       ).then(() => dispatch(get_product()));
     } catch (error) {
       toast({
@@ -261,17 +321,8 @@ console.log(selectedProduct)
     setImageFiles((prev) => [...prev, ...files]);
   };
 
-  // Add image URL manually
-  const addImageUrl = () => {
-    const url = prompt("กรุณาใส่ URL ของรูปภาพ:");
-    if (url && url.trim()) {
-      setSelectedImages((prev) => [...prev, url.trim()]);
-    }
-  };
-
   // Remove image
   const removeImage = (index, data) => {
-    console.log(index);
     if (isEditing) {
       //1   ,1,\\22
       if (data?.images?.length === index) {
@@ -289,17 +340,17 @@ console.log(selectedProduct)
 
   // Handle image navigation in table
   const handleImageNavigation = (productId, direction) => {
-    const product = products.find((p) => p._id === productId);
-    if (!product || !product.images || product.images.length <= 1) return;
+    const product = products?.find((p) => p._id === productId);
+    if (!product || !product?.images || product?.images.length <= 1) return;
 
     const currentIndex = currentImageIndex[productId] || 0;
     let newIndex;
 
     if (direction === "next") {
-      newIndex = (currentIndex + 1) % product.images.length;
+      newIndex = (currentIndex + 1) % product?.images?.length;
     } else {
       newIndex =
-        currentIndex === 0 ? product.images.length - 1 : currentIndex - 1;
+        currentIndex === 0 ? product?.images?.length - 1 : currentIndex - 1;
     }
 
     setCurrentImageIndex((prev) => ({
@@ -309,7 +360,7 @@ console.log(selectedProduct)
   };
   // Tag management functions
   const addTag = () => {
-    if (newTag.trim() && !selectedProduct.tags.includes(newTag.trim())) {
+    if (newTag.trim() && !selectedProduct?.tags?.includes(newTag?.trim())) {
       setSelectedProduct({
         ...selectedProduct,
         tags: [...selectedProduct.tags, newTag.trim()],
@@ -360,10 +411,21 @@ console.log(selectedProduct)
       colors: selectedProduct.colors.filter((color) => color !== colorToRemove),
     });
   };
+  const ProductSkeleton = () => (
+    <VStack spacing={4} align="center">
+      {/* ไอคอนการ์ตูนกำลังโหลด */}
+
+      {/* Skeleton สำหรับเนื้อหา */}
+      <Skeleton height="20px" width="200px" />
+      <SkeletonText mt="2" noOfLines={2} spacing="3" width="250px" />
+      <Skeleton height="20px" width="100px" />
+      <Skeleton height="20px" width="150px" />
+    </VStack>
+  );
   useEffect(() => {
     if (successMessage) {
       toast({
-        title: "สำเร็จ",
+        title: "ສຳເລັດ",
         description: successMessage,
         status: "success",
         duration: 3000,
@@ -373,7 +435,7 @@ console.log(selectedProduct)
     }
     if (errorMessage) {
       toast({
-        title: "ข้อผิดพลาด",
+        title: "ເກີດຂໍ້ຜິດພາດ",
         description: errorMessage,
         status: "error",
         duration: 3000,
@@ -387,10 +449,15 @@ console.log(selectedProduct)
       {/* Header */}
       <VStack spacing={6} align="stretch">
         <Box>
-          <Heading size="lg" color="blue.600" mb={2}>
-            📦 จัดการสินค้า
+          <Heading
+            fontFamily={"Noto Sans Lao, serif"}
+            size="lg"
+            color="blue.600"
+            mb={2}
+          >
+            📦 ຈັດການສິນຄ້າ
           </Heading>
-          <Text color="gray.600">จัดการสินค้าในร้านของคุณ</Text>
+          <Text color="gray.600">ຈັດການສິນຄ້າໃນຮ້ານຂອງທ່ານ</Text>
         </Box>
 
         <Divider />
@@ -403,12 +470,12 @@ console.log(selectedProduct)
             onClick={handleAddProduct}
             flexShrink={0}
           >
-            ✅ เพิ่มสินค้าใหม่
+            ✅ ເພີ່ມສິນຄ້າໃໝ່
           </Button>
 
           <HStack spacing={4} flex={1} w={{ base: "100%", md: "auto" }}>
             <Input
-              placeholder="🔍 ค้นหาสินค้า..."
+              placeholder="🔍 ຄົ້ນຫາສິນຄ້າ..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               maxW="300px"
@@ -419,23 +486,29 @@ console.log(selectedProduct)
               onChange={(e) => setStatusFilter(e.target.value)}
               maxW="200px"
             >
-              <option value="all">🔘 ทั้งหมด</option>
-              <option value="available">✅ วางขาย</option>
-              <option value="out_of_stock">❌ สินค้าหมด</option>
-              <option value="discontinued">⛔ ยกเลิกจำหน่าย</option>
+              <option value="all">🔘 ທັງໝົດ</option>
+              <option value="available">✅ ວາງຂາຍ</option>
+              <option value="out_of_stock">❌ ສິນຄ້າໝົດ</option>
+              <option value="discontinued">⛔ ຍົກເລີກຈຳໜ່າຍ</option>
               <option value="temporarily_unavailable">
-                ⏸️ หยุดจำหน่ายชั่วคราว
+                ⏸️ ຢຸດຈຳຫນ່າຍຊົ່ວຄາວ
               </option>
             </Select>
           </HStack>
         </Flex>
 
         {/* Products Table */}
-        {currentProducts?.length === 0 ? (
+        {loader ? (
+          <SimpleGrid spacing="6">
+            {Array.from({ length: 8 }, (_, i) => (
+              <ProductSkeleton key={i} />
+            ))}
+          </SimpleGrid>
+        ) : currentProducts?.length === 0 ? (
           <Center py={10}>
             <VStack spacing={4}>
               <Text fontSize="xl" color="gray.500">
-                😔 ไม่พบสินค้าที่ค้นหา
+                😔 ບໍ່ພົບສິນຄ້າທີ່ຄົ້ນຫາ
               </Text>
               <Button
                 colorScheme="blue"
@@ -444,189 +517,609 @@ console.log(selectedProduct)
                   setStatusFilter("all");
                 }}
               >
-                ล้างตัวกรอง
+                ລ້າງຕົວກຣອງ
               </Button>
             </VStack>
           </Center>
         ) : (
-          <Box
-            overflowX="auto"
-            bg="white"
-            borderRadius="lg"
-            shadow="sm"
-            border="1px"
-            borderColor="gray.200"
-          >
-            <Box as="table" w="100%" style={{ tableLayout: "fixed" }}>
-              {/* Table Header */}
-              <Box as="thead" bg="gray.50">
-                <Box as="tr">
-                  <Box
-                    as="th"
-                    textAlign="left"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    w="120px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      รูปภาพ
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="left"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    minW="200px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      ชื่อสินค้า
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="left"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    minW="250px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      คำอธิบาย
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="right"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    w="100px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      ราคา
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="center"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    w="80px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      คงเหลือ
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="center"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    w="120px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      สถานะ
-                    </Text>
-                  </Box>
-                  <Box
-                    as="th"
-                    textAlign="center"
-                    p={4}
-                    borderBottom="1px"
-                    borderColor="gray.200"
-                    w="200px"
-                  >
-                    <Text fontWeight="semibold" fontSize="sm" color="gray.700">
-                      จัดการ
-                    </Text>
+          <>
+            {/* Desktop Table View */}
+            <Box
+              overflowX="auto"
+              bg="white"
+              borderRadius="lg"
+              shadow="sm"
+              border="1px"
+              borderColor="gray.200"
+              display={{ base: "none", lg: "block" }}
+            >
+              <Box as="table" w="100%" style={{ tableLayout: "fixed" }}>
+                {/* Table Header */}
+                <Box as="thead" bg="gray.50">
+                  <Box as="tr">
+                    <Box
+                      as="th"
+                      textAlign="left"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="120px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ຮູບພາບ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="left"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      minW="200px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ສິນຄ້າ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="left"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      minW="150px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ຄຳອະທິບາຍ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="right"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="100px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ລາຄາຂາຍ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="center"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="100px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ຂາຍແລ້ວ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="center"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="100px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ຄົງເຫຼືອ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="center"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="120px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ສະຖານະອະນຸມັດຂາຍ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="center"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="120px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ສະຖານະສິນຄ້າ
+                      </Text>
+                    </Box>
+                    <Box
+                      as="th"
+                      textAlign="center"
+                      p={4}
+                      borderBottom="1px"
+                      borderColor="gray.200"
+                      w="200px"
+                    >
+                      <Text
+                        fontWeight="semibold"
+                        fontSize="sm"
+                        color="gray.700"
+                      >
+                        ຈັດການ
+                      </Text>
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
 
-              {/* Table Body */}
-              <Box as="tbody">
-                {currentProducts?.map((product, index) => {
-                  const currentIndex = currentImageIndex[product._id] || 0;
-                  const displayImage =
-                    product.images && product.images.length > 0
-                      ? product.images[currentIndex]
-                      : null;
-                  return (
-                    <Box
-                      key={index}
-                      as="tr"
-                      bg={index % 2 === 0 ? "white" : "gray.25"}
-                      _hover={{ bg: "blue.50" }}
-                      transition="background-color 0.2s"
-                    >
-                      {/* Image with navigation */}
+                {/* Table Body */}
+                <Box as="tbody">
+                  {currentProducts?.map((product, index) => {
+                    const currentIndex = currentImageIndex[product._id] || 0;
+                    const displayImage =
+                      product?.images && product?.images?.length > 0
+                        ? product?.images[currentIndex]
+                        : null;
+                    return (
                       <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
+                        key={index}
+                        as="tr"
+                        bg={index % 2 === 0 ? "white" : "gray.25"}
+                        _hover={{ bg: "blue.50" }}
+                        transition="background-color 0.2s"
                       >
-                        <Box position="relative">
-                          {/* Main image */}
+                        {/* Image with navigation */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                        >
+                          <Box position="relative">
+                            {/* Main image */}
+                            <Image
+                              src={displayImage}
+                              alt={product?.name}
+                              width="80px"
+                              height="80px"
+                              objectFit="cover"
+                              borderRadius="md"
+                              fallbackSrc="https://via.placeholder.com/80x80?text=No+Image"
+                              cursor="pointer"
+                              onMouseEnter={() =>
+                                setHoveredProduct(product._id)
+                              }
+                              onMouseLeave={() => setHoveredProduct(null)}
+                            />
+
+                            {/* Image navigation buttons */}
+                            {product.images.length > 1 && (
+                              <HStack spacing={1} mt={1} justify="center">
+                                <IconButton
+                                  size="xs"
+                                  variant="ghost"
+                                  icon={<ChevronLeftIcon />}
+                                  onClick={() =>
+                                    handleImageNavigation(product._id, "prev")
+                                  }
+                                  aria-label="Previous image"
+                                />
+                                <Text fontSize="xs" color="gray.500">
+                                  {currentIndex + 1}/{product.images.length}
+                                </Text>
+                                <IconButton
+                                  size="xs"
+                                  variant="ghost"
+                                  icon={<ChevronRightIcon />}
+                                  onClick={() =>
+                                    handleImageNavigation(product._id, "next")
+                                  }
+                                  aria-label="Next image"
+                                />
+                              </HStack>
+                            )}
+
+                            {/* Dropdown menu for all images */}
+                            {product.images && product.images.length > 1 && (
+                              <Menu>
+                                <MenuButton
+                                  as={IconButton}
+                                  icon={<ChevronDownIcon />}
+                                  size="xs"
+                                  variant="ghost"
+                                  position="absolute"
+                                  top={1}
+                                  right={1}
+                                  bg="blackAlpha.600"
+                                  color="white"
+                                  _hover={{ bg: "blackAlpha.800" }}
+                                  aria-label="View all images"
+                                />
+                                <MenuList maxH="300px" overflowY="auto">
+                                  {product.images.map((img, imgIndex) => (
+                                    <MenuItem
+                                      key={imgIndex}
+                                      onClick={() =>
+                                        setCurrentImageIndex((prev) => ({
+                                          ...prev,
+                                          [product._id]: imgIndex,
+                                        }))
+                                      }
+                                      bg={
+                                        imgIndex === currentIndex
+                                          ? "blue.50"
+                                          : "white"
+                                      }
+                                    >
+                                      <HStack spacing={3}>
+                                        <Image
+                                          src={img}
+                                          alt={`${product.name} ${
+                                            imgIndex + 1
+                                          }`}
+                                          width="40px"
+                                          height="40px"
+                                          objectFit="cover"
+                                          borderRadius="sm"
+                                          fallbackSrc="https://via.placeholder.com/40x40?text=No"
+                                        />
+                                        <Text fontSize="sm">
+                                          ຮູບທີ່ {imgIndex + 1}
+                                        </Text>
+                                      </HStack>
+                                    </MenuItem>
+                                  ))}
+                                </MenuList>
+                              </Menu>
+                            )}
+
+                            {/* Preview on hover */}
+                            {hoveredProduct === product._id && displayImage && (
+                              <Box
+                                position="fixed"
+                                zIndex={1000}
+                                top="50%"
+                                left="50%"
+                                transform="translate(-50%, -50%)"
+                                bg="white"
+                                p={4}
+                                borderRadius="lg"
+                                shadow="xl"
+                                border="1px"
+                                borderColor="gray.200"
+                                maxW="300px"
+                              >
+                                <Image
+                                  src={displayImage}
+                                  alt={product.name}
+                                  width="100%"
+                                  height="200px"
+                                  objectFit="cover"
+                                  borderRadius="md"
+                                  fallbackSrc="https://via.placeholder.com/300x200?text=No+Image"
+                                />
+                                <Text
+                                  fontSize="sm"
+                                  fontWeight="semibold"
+                                  mt={2}
+                                  textAlign="center"
+                                >
+                                  {product.name}
+                                </Text>
+                                {product.images && product.images.length > 1 && (
+                                  <Text
+                                    fontSize="xs"
+                                    color="gray.500"
+                                    textAlign="center"
+                                  >
+                                    ຮູບທີ່ {currentIndex + 1} ຈາກ{" "}
+                                    {product.images.length}
+                                  </Text>
+                                )}
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
+
+                        {/* Name */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                        >
+                          <Text
+                            fontWeight="semibold"
+                            fontSize="sm"
+                            noOfLines={2}
+                          >
+                            {product.name}
+                          </Text>
+                        </Box>
+
+                        {/* Description */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                        >
+                          <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                            {product.description}
+                          </Text>
+                        </Box>
+
+                        {/* Price */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                          textAlign="right"
+                        >
+                          <Text
+                            fontWeight="bold"
+                            color="blue.600"
+                            fontSize="sm"
+                          >
+                            {product.price.toLocaleString()}
+                          </Text>
+                        </Box>
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                          textAlign="right"
+                        >
+                          <Text
+                            fontWeight="bold"
+                            color="blue.600"
+                            fontSize="sm"
+                          >
+                            {product.sold_count}
+                          </Text>
+                        </Box>
+                        {/* Stock */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                          textAlign="center"
+                        >
+                          <VStack spacing={1}>
+                            <Text fontSize="sm" fontWeight="semibold">
+                              {product.stock}
+                            </Text>
+                            {isLowStock(
+                              product.stock,
+                              product.low_stock_threshold
+                            ) && (
+                              <Tooltip label="สินค้าใกล้หมด" hasArrow>
+                                <Text fontSize="xs" color="orange.500">
+                                  ⚠️
+                                </Text>
+                              </Tooltip>
+                            )}
+                          </VStack>
+                        </Box>
+
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                          textAlign="right"
+                        >
+                          <Text
+                            fontWeight="bold"
+                            color={
+                              product?.access_products === "rejected"
+                                ? "red.600"
+                                : product?.access_products === "access"
+                                ? "green.600"
+                                : "orange.600"
+                            }
+                            fontSize="sm"
+                          >
+                            {product?.access_products === "rejected" &&
+                              "ຖືກປະຕິເສດ"}
+                            {product?.access_products === "access" &&
+                              "ອະນຸມັດແລ້ວ"}
+                            {product?.access_products === "process" &&
+                              "ລໍຖ້າດຳເນີນການ"}
+                          </Text>
+
+                          {product?.access_products === "rejected" ? (
+                            <Popover>
+                              <PopoverTrigger>
+                                <Button>?</Button>
+                              </PopoverTrigger>
+                              <PopoverContent>
+                                <PopoverArrow />
+                                <PopoverCloseButton />
+                                <PopoverHeader>
+                                  ເຫດຜົນທີ່ປະຕິເສດສິນຄ້າ
+                                </PopoverHeader>
+                                <PopoverBody>
+                                  {product?.sanitizedReason}
+                                </PopoverBody>
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            ""
+                          )}
+                        </Box>
+                        {/* Status */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                          textAlign="center"
+                        >
+                          <Badge
+                            colorScheme={getStatusColor(product.status)}
+                            fontSize="xs"
+                            borderRadius="full"
+                            px={2}
+                            py={1}
+                          >
+                            {getStatusText(product.status)}
+                          </Badge>
+                        </Box>
+
+                        {/* Actions */}
+                        <Box
+                          as="td"
+                          p={4}
+                          borderBottom="1px"
+                          borderColor="gray.100"
+                        >
+                          <HStack spacing={1} justify="center" flexWrap="wrap">
+                            <Tooltip label="ແກ້ໄຂສິນຄ້າ" hasArrow>
+                              <Button
+                                size="sm"
+                                colorScheme="blue"
+                                variant="ghost"
+                                onClick={() => handleEditProduct(product)}
+                                fontSize="xs"
+                                px={2}
+                              >
+                                ✏️
+                              </Button>
+                            </Tooltip>
+
+                            <Tooltip
+                              label={
+                                product.status === "temporarily_unavailable"
+                                  ? "ກັບມາວາງຂາຍ"
+                                  : "ຢຸດຈຳຫນ່າຍຊົ່ວຄາວ"
+                              }
+                              hasArrow
+                            >
+                              <Button
+                                size="sm"
+                                colorScheme={
+                                  product.status === "temporarily_unavailable"
+                                    ? "green"
+                                    : "orange"
+                                }
+                                variant="ghost"
+                                onClick={() =>
+                                  handleToggleTemporaryStatus(product)
+                                }
+                                fontSize="xs"
+                                px={2}
+                              >
+                                {product.status === "temporarily_unavailable"
+                                  ? "▶️"
+                                  : "⏸️"}
+                              </Button>
+                            </Tooltip>
+
+                            {/* <Tooltip label="ลบสินค้า" hasArrow>
+                  <Button
+                    size="sm"
+                    colorScheme="red"
+                    variant="ghost"
+                    onClick={() => handleDeleteProduct(product._id)}
+                    fontSize="xs"
+                    px={2}
+                  >
+                    🗑️
+                  </Button>
+                </Tooltip> */}
+                          </HStack>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Mobile Card View */}
+            <VStack spacing={4} display={{ base: "flex", lg: "none" }}>
+              {currentProducts?.map((product, index) => {
+                const currentIndex = currentImageIndex[product._id] || 0;
+                const displayImage =
+                  product?.images && product?.images?.length > 0
+                    ? product?.images[currentIndex]
+                    : null;
+                return (
+                  <Box
+                    key={index}
+                    bg="white"
+                    borderRadius="lg"
+                    shadow="sm"
+                    border="1px"
+                    borderColor="gray.200"
+                    p={4}
+                    w="100%"
+                  >
+                    <VStack spacing={3} align="stretch">
+                      {/* Image Section */}
+                      <Box textAlign="center">
+                        <Box position="relative" display="inline-block">
                           <Image
                             src={displayImage}
-                            alt={product.name}
-                            width="80px"
-                            height="80px"
+                            alt={product?.name}
+                            width={{ base: "120px", sm: "150px" }}
+                            height={{ base: "120px", sm: "150px" }}
                             objectFit="cover"
                             borderRadius="md"
-                            fallbackSrc="https://via.placeholder.com/80x80?text=No+Image"
+                            fallbackSrc="https://via.placeholder.com/150x150?text=No+Image"
                             cursor="pointer"
                             onMouseEnter={() => setHoveredProduct(product._id)}
                             onMouseLeave={() => setHoveredProduct(null)}
                           />
 
-                          {/* Image navigation buttons */}
-                          {product.images && product.images.length > 1 && (
-                            <HStack spacing={1} mt={1} justify="center">
-                              <IconButton
-                                size="xs"
-                                variant="ghost"
-                                icon={<ChevronLeftIcon />}
-                                onClick={() =>
-                                  handleImageNavigation(product._id, "prev")
-                                }
-                                aria-label="Previous image"
-                              />
-                              <Text fontSize="xs" color="gray.500">
-                                {currentIndex + 1}/{product.images.length}
-                              </Text>
-                              <IconButton
-                                size="xs"
-                                variant="ghost"
-                                icon={<ChevronRightIcon />}
-                                onClick={() =>
-                                  handleImageNavigation(product._id, "next")
-                                }
-                                aria-label="Next image"
-                              />
-                            </HStack>
-                          )}
-
-                          {/* Dropdown menu for all images */}
+                          {/* Image dropdown */}
                           {product.images && product.images.length > 1 && (
                             <Menu>
                               <MenuButton
                                 as={IconButton}
                                 icon={<ChevronDownIcon />}
-                                size="xs"
-                                variant="ghost"
+                                size="sm"
+                                variant="solid"
+                                colorScheme="blackAlpha"
                                 position="absolute"
-                                top={1}
-                                right={1}
-                                bg="blackAlpha.600"
-                                color="white"
-                                _hover={{ bg: "blackAlpha.800" }}
+                                top={2}
+                                right={2}
                                 aria-label="View all images"
                               />
                               <MenuList maxH="300px" overflowY="auto">
@@ -656,7 +1149,7 @@ console.log(selectedProduct)
                                         fallbackSrc="https://via.placeholder.com/40x40?text=No"
                                       />
                                       <Text fontSize="sm">
-                                        รูปที่ {imgIndex + 1}
+                                        ຮູບທີ່ {imgIndex + 1}
                                       </Text>
                                     </HStack>
                                   </MenuItem>
@@ -664,165 +1157,151 @@ console.log(selectedProduct)
                               </MenuList>
                             </Menu>
                           )}
-
-                          {/* Preview on hover */}
-                          {hoveredProduct === product._id && displayImage && (
-                            <Box
-                              position="fixed"
-                              zIndex={1000}
-                              top="50%"
-                              left="50%"
-                              transform="translate(-50%, -50%)"
-                              bg="white"
-                              p={4}
-                              borderRadius="lg"
-                              shadow="xl"
-                              border="1px"
-                              borderColor="gray.200"
-                              maxW="300px"
-                            >
-                              <Image
-                                src={displayImage}
-                                alt={product.name}
-                                width="100%"
-                                height="200px"
-                                objectFit="cover"
-                                borderRadius="md"
-                                fallbackSrc="https://via.placeholder.com/300x200?text=No+Image"
-                              />
-                              <Text
-                                fontSize="sm"
-                                fontWeight="semibold"
-                                mt={2}
-                                textAlign="center"
-                              >
-                                {product.name}
-                              </Text>
-                              {product.images && product.images.length > 1 && (
-                                <Text
-                                  fontSize="xs"
-                                  color="gray.500"
-                                  textAlign="center"
-                                >
-                                  รูปที่ {currentIndex + 1} จาก{" "}
-                                  {product.images.length}
-                                </Text>
-                              )}
-                            </Box>
-                          )}
                         </Box>
+
+                        {/* Image navigation for mobile */}
+                        {product.images && product.images.length > 1 && (
+                          <HStack spacing={2} mt={2} justify="center">
+                            <IconButton
+                              size="sm"
+                              variant="outline"
+                              icon={<ChevronLeftIcon />}
+                              onClick={() =>
+                                handleImageNavigation(product._id, "prev")
+                              }
+                              aria-label="Previous image"
+                            />
+                            <Text fontSize="sm" color="gray.500" minW="50px">
+                              {currentIndex + 1}/{product.images.length}
+                            </Text>
+                            <IconButton
+                              size="sm"
+                              variant="outline"
+                              icon={<ChevronRightIcon />}
+                              onClick={() =>
+                                handleImageNavigation(product._id, "next")
+                              }
+                              aria-label="Next image"
+                            />
+                          </HStack>
+                        )}
                       </Box>
 
-                      {/* Name */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                      >
-                        <Text fontWeight="semibold" fontSize="sm" noOfLines={2}>
+                      {/* Product Info */}
+                      <VStack spacing={3} align="stretch">
+                        {/* Name */}
+                        <Text
+                          fontWeight="bold"
+                          fontSize="lg"
+                          textAlign="center"
+                        >
                           {product.name}
                         </Text>
-                      </Box>
 
-                      {/* Description */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                      >
-                        <Text fontSize="sm" color="gray.600" noOfLines={2}>
+                        {/* Description */}
+                        <Text fontSize="sm" color="gray.600" textAlign="center">
                           {product.description}
                         </Text>
-                      </Box>
 
-                      {/* Price */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                        textAlign="right"
-                      >
-                        <Text fontWeight="bold" color="blue.600" fontSize="sm">
-                          ฿{product.price.toLocaleString()}
-                        </Text>
-                      </Box>
+                        {/* Details Grid */}
+                        <SimpleGrid columns={2} spacing={3}>
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              ລາຄາຂາຍ
+                            </Text>
+                            <Text
+                              fontWeight="bold"
+                              color="blue.600"
+                              fontSize="lg"
+                            >
+                              {product.price.toLocaleString()}
+                            </Text>
+                          </Box>
 
-                      {/* Stock */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                        textAlign="center"
-                      >
-                        <VStack spacing={1}>
-                          <Text fontSize="sm" fontWeight="semibold">
-                            {product.stock}
-                          </Text>
-                          {isLowStock(
-                            product.stock,
-                            product.low_stock_threshold
-                          ) && (
-                            <Tooltip label="สินค้าใกล้หมด" hasArrow>
-                              <Text fontSize="xs" color="orange.500">
-                                ⚠️
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              ຂາຍແລ້ວ
+                            </Text>
+                            <Text
+                              fontWeight="bold"
+                              color="green.600"
+                              fontSize="lg"
+                            >
+                              {product.sold_count}
+                            </Text>
+                          </Box>
+
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              ຄົງເຫຼືອ
+                            </Text>
+                            <HStack>
+                              <Text fontWeight="bold" fontSize="lg">
+                                {product.stock}
                               </Text>
-                            </Tooltip>
-                          )}
-                        </VStack>
-                      </Box>
+                              {isLowStock(
+                                product.stock,
+                                product.low_stock_threshold
+                              ) && (
+                                <Tooltip label="สินค้าใกล้หมด" hasArrow>
+                                  <Text fontSize="sm" color="orange.500">
+                                    ⚠️
+                                  </Text>
+                                </Tooltip>
+                              )}
+                            </HStack>
+                          </Box>
 
-                      {/* Status */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                        textAlign="center"
-                      >
-                        <Badge
-                          colorScheme={getStatusColor(product.status)}
-                          fontSize="xs"
-                          borderRadius="full"
-                          px={2}
-                          py={1}
-                        >
-                          {getStatusText(product.status)}
-                        </Badge>
-                      </Box>
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              ສະຖານະສິນຄ້າ
+                            </Text>
+                            <Badge
+                              colorScheme={getStatusColor(product.status)}
+                              fontSize="xs"
+                              borderRadius="full"
+                              px={2}
+                              py={1}
+                            >
+                              {getStatusText(product.status)}
+                            </Badge>
+                          </Box>
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" mb={1}>
+                              ສະຖານະອະນຸມັດຂາຍ
+                            </Text>
+                            <Badge
+                              colorScheme={
+                                product.access_products === "access"
+                                  ? "green"
+                                  : "red"
+                              }
+                              fontSize="xs"
+                              borderRadius="full"
+                              px={2}
+                              py={1}
+                            >
+                              {product.access_products === "access"
+                                ? "ອະນຸມັດຂາຍ"
+                                : "ປະຕິເສດ"}
+                            </Badge>
+                          </Box>
+                        </SimpleGrid>
 
-                      {/* Actions */}
-                      <Box
-                        as="td"
-                        p={4}
-                        borderBottom="1px"
-                        borderColor="gray.100"
-                      >
-                        <HStack spacing={1} justify="center" flexWrap="wrap">
-                          <Tooltip label="แก้ไขสินค้า" hasArrow>
+                        {/* Actions */}
+                        <VStack spacing={2}>
+                          <HStack spacing={2} w="100%" justify="center">
                             <Button
                               size="sm"
                               colorScheme="blue"
-                              variant="ghost"
+                              variant="outline"
                               onClick={() => handleEditProduct(product)}
-                              fontSize="xs"
-                              px={2}
+                              leftIcon={<span>✏️</span>}
+                              flex={1}
                             >
-                              ✏️
+                              ແກ້ໄຂ
                             </Button>
-                          </Tooltip>
 
-                          <Tooltip
-                            label={
-                              product.status === "temporarily_unavailable"
-                                ? "กลับมาวางขาย"
-                                : "หยุดจำหน่ายชั่วคราว"
-                            }
-                            hasArrow
-                          >
                             <Button
                               size="sm"
                               colorScheme={
@@ -830,39 +1309,43 @@ console.log(selectedProduct)
                                   ? "green"
                                   : "orange"
                               }
-                              variant="ghost"
+                              variant="outline"
                               onClick={() =>
                                 handleToggleTemporaryStatus(product)
                               }
-                              fontSize="xs"
-                              px={2}
+                              leftIcon={
+                                <span>
+                                  {product.status === "temporarily_unavailable"
+                                    ? "▶️"
+                                    : "⏸️"}
+                                </span>
+                              }
+                              flex={1}
                             >
                               {product.status === "temporarily_unavailable"
-                                ? "▶️"
-                                : "⏸️"}
+                                ? "ກັບມາຂາຍ"
+                                : "ຢຸດຊົ່ວຄາວ"}
                             </Button>
-                          </Tooltip>
+                          </HStack>
 
-                          <Tooltip label="ลบสินค้า" hasArrow>
-                            <Button
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={() => handleDeleteProduct(product._id)}
-                              fontSize="xs"
-                              px={2}
-                            >
-                              🗑️
-                            </Button>
-                          </Tooltip>
-                        </HStack>
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Box>
-          </Box>
+                          <Button
+                            size="sm"
+                            colorScheme="red"
+                            variant="outline"
+                            onClick={() => handleDeleteProduct(product._id)}
+                            leftIcon={<span>🗑️</span>}
+                            w="100%"
+                          >
+                            ລົບສິນຄ້າ
+                          </Button>
+                        </VStack>
+                      </VStack>
+                    </VStack>
+                  </Box>
+                );
+              })}
+            </VStack>
+          </>
         )}
 
         {/* Pagination */}
@@ -877,9 +1360,9 @@ console.log(selectedProduct)
           >
             <HStack spacing={2} justify="space-between" align="center">
               <Text fontSize="sm" color="gray.600">
-                แสดง {startIndex + 1}-
+                ສະແດງ {startIndex + 1}-
                 {Math.min(startIndex + itemsPerPage, filteredProducts.length)}{" "}
-                จาก {filteredProducts.length} รายการ
+                ຈາກ {filteredProducts.length} ລາຍການ
               </Text>
 
               <HStack spacing={2}>
@@ -890,7 +1373,7 @@ console.log(selectedProduct)
                   leftIcon={<ChevronLeftIcon />}
                   variant="outline"
                 >
-                  ก่อนหน้า
+                  ກ່ອນໜ້າ
                 </Button>
 
                 <HStack spacing={1}>
@@ -972,7 +1455,7 @@ console.log(selectedProduct)
                   rightIcon={<ChevronRightIcon />}
                   variant="outline"
                 >
-                  ถัดไป
+                  ຖັດໄປ
                 </Button>
               </HStack>
 
@@ -986,10 +1469,10 @@ console.log(selectedProduct)
                 w="auto"
                 minW="100px"
               >
-                <option value={6}>6 / หน้า</option>
-                <option value={12}>12 / หน้า</option>
-                <option value={24}>24 / หน้า</option>
-                <option value={50}>50 / หน้า</option>
+                <option value={6}>6 / ໜ້າ</option>
+                <option value={12}>12 / ໜ້າ</option>
+                <option value={24}>24 / ໜ້າ</option>
+                <option value={50}>50 / ໜ້າ</option>
               </Select>
             </HStack>
           </Box>
@@ -1000,7 +1483,7 @@ console.log(selectedProduct)
           <ModalOverlay />
           <ModalContent maxW="800px">
             <ModalHeader>
-              {isEditing ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}
+              {isEditing ? "ແກ້ໄຂສິນຄ້າ" : "ເພີ່ມສິນຄ້າໃໝ່"}
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
@@ -1008,7 +1491,7 @@ console.log(selectedProduct)
                 <Stack spacing={4}>
                   <HStack>
                     <FormControl>
-                      <FormLabel>ชื่อสินค้า</FormLabel>
+                      <FormLabel>ຊື່ສິນຄ້າ</FormLabel>
                       <Input
                         value={selectedProduct.name}
                         onChange={(e) =>
@@ -1020,8 +1503,9 @@ console.log(selectedProduct)
                       />
                     </FormControl>
                     <FormControl flex={1}>
-                      <FormLabel>แบรนด์</FormLabel>
+                      <FormLabel>ແບຣນ</FormLabel>
                       <Input
+                        width={"150px"}
                         value={selectedProduct.brand}
                         onChange={(e) =>
                           setSelectedProduct({
@@ -1029,13 +1513,13 @@ console.log(selectedProduct)
                             brand: e.target.value,
                           })
                         }
-                        placeholder="ระบุแบรนด์"
+                        placeholder="ລະບຸແບຣນຂອງສິນຄ້າ"
                       />
                     </FormControl>
                   </HStack>
                   =
                   <FormControl>
-                    <FormLabel>คำอธิบาย</FormLabel>
+                    <FormLabel>ຄຳອະທິບາຍສິນຄ້າ</FormLabel>
                     <Textarea
                       value={selectedProduct.description}
                       onChange={(e) =>
@@ -1049,7 +1533,7 @@ console.log(selectedProduct)
                   </FormControl>
                   <HStack>
                     <FormControl>
-                      <FormLabel>ราคา (บาท)</FormLabel>
+                      <FormLabel>ລາຄາສິນຄ້າ ຂາຍຈິງ (ກີບ)</FormLabel>
                       <NumberInput
                         value={selectedProduct.price}
                         onChange={(value) =>
@@ -1063,9 +1547,24 @@ console.log(selectedProduct)
                         <NumberInputField />
                       </NumberInput>
                     </FormControl>
+                    <FormControl>
+                      <FormLabel>ລາຄາສິນຄ້າ (ຫລຸດ) (ກີບ)</FormLabel>
+                      <NumberInput
+                        value={selectedProduct?.orginalPrice}
+                        onChange={(value) =>
+                          setSelectedProduct({
+                            ...selectedProduct,
+                            orginalPrice: parseInt(value) || 0,
+                          })
+                        }
+                        min={0}
+                      >
+                        <NumberInputField />
+                      </NumberInput>
+                    </FormControl>
 
                     <FormControl>
-                      <FormLabel>จำนวนคงเหลือ</FormLabel>
+                      <FormLabel>ຈຳນວນທີ່ມີຂາຍ (ຄົງເຫຼືອ)</FormLabel>
                       <NumberInput
                         value={selectedProduct.stock}
                         onChange={(value) =>
@@ -1082,7 +1581,7 @@ console.log(selectedProduct)
                   </HStack>
                   <HStack>
                     <FormControl>
-                      <FormLabel>สถานะ</FormLabel>
+                      <FormLabel>ສະຖານະ</FormLabel>
                       <Select
                         value={selectedProduct.status}
                         onChange={(e) =>
@@ -1092,17 +1591,17 @@ console.log(selectedProduct)
                           })
                         }
                       >
-                        <option value="available">วางขาย</option>
-                        <option value="out_of_stock">สินค้าหมด</option>
-                        <option value="discontinued">ยกเลิกจำหน่าย</option>
+                        <option value="available">ວາງຂາຍ</option>
+                        <option value="out_of_stock">ສິນຄ້າໝົດ</option>
+                        <option value="discontinued">ຍົກເລີກຈຳໜ່າຍ</option>
                         <option value="temporarily_unavailable">
-                          หยุดจำหน่ายชั่วคราว
+                          ຢຸດຈຳຫນ່າຍຊົ່ວຄາວ
                         </option>
                       </Select>
                     </FormControl>
 
                     <FormControl>
-                      <FormLabel>แจ้งเตือนเมื่อเหลือ</FormLabel>
+                      <FormLabel>ແຈ້ງເຕືອນເມື່ອສິນຄ້າຄົງເຫຼືອ</FormLabel>
                       <NumberInput
                         value={selectedProduct.low_stock_threshold}
                         onChange={(value) =>
@@ -1121,7 +1620,7 @@ console.log(selectedProduct)
                     <FormControl flex={1}>
                       <FormLabel>SKU</FormLabel>
                       <Input
-                      width={'200px'}
+                        width={"200px"}
                         value={selectedProduct.sku}
                         onChange={(e) =>
                           setSelectedProduct({
@@ -1129,14 +1628,16 @@ console.log(selectedProduct)
                             sku: e.target.value,
                           })
                         }
-                        placeholder="เช่น TSH-001-BLK-M"
+                        placeholder="ເຊັ່ນ: TSH-001-BLK-M"
                       />
-                        <FormHelperText color={'red'}>ລະຫັດ ບາໂຄ້ດ</FormHelperText>
+                      <FormHelperText color={"red"}>
+                        ລະຫັດ ບາໂຄ້ດ
+                      </FormHelperText>
                     </FormControl>
                     <FormControl>
-                      <FormLabel>ໝວດໝູ່</FormLabel>
+                      <FormLabel>ໝວດໝູ່ສິນຄ້າ</FormLabel>
                       <Select
-                        value={selectedProduct.categoryId}
+                        value={selectedProduct?.categoryId}
                         onChange={(e) =>
                           setSelectedProduct({
                             ...selectedProduct,
@@ -1144,23 +1645,25 @@ console.log(selectedProduct)
                           })
                         }
                       >
-                        <option value="">ไม่มีหมวดหมู่</option>
+                        <option value="">ບໍ່ມີໝວດໝູ່</option>
                         {categoryL?.map((category) => (
                           <option key={category._id} value={category._id}>
                             {category.name}
                           </option>
                         ))}
                       </Select>
-                      <FormHelperText color={'red'}>ກະລຸນາເລືອກ category ທຸກຄັ້ງເວລາອັບເດດ</FormHelperText>
+                      <FormHelperText color={"red"}>
+                        ກະລຸນາເລືອກ category ທຸກຄັ້ງເວລາອັບເດດ
+                      </FormHelperText>
                     </FormControl>
                   </HStack>
                   <FormControl>
-                    <FormLabel>แท็ก</FormLabel>
+                    <FormLabel>ແທ໋ກ</FormLabel>
                     <HStack mb={2}>
                       <Input
                         value={newTag}
                         onChange={(e) => setNewTag(e.target.value)}
-                        placeholder="เพิ่มแท็ก"
+                        placeholder="ເພີ່ມແທ໋ກ"
                         size="sm"
                         onKeyPress={(e) => {
                           if (e.key === "Enter") {
@@ -1170,7 +1673,7 @@ console.log(selectedProduct)
                         }}
                       />
                       <Button size="sm" onClick={addTag} colorScheme="blue">
-                        เพิ่ม
+                        ເພີ່ມ
                       </Button>
                     </HStack>
                   </FormControl>
@@ -1188,14 +1691,14 @@ console.log(selectedProduct)
                   <Stack spacing={6}>
                     {/* Sizes Section */}
                     <Box>
-                      <FormLabel>ขนาดที่มีจำหน่าย</FormLabel>
+                      <FormLabel>ຂະໜາດໄຊ້ທີ່ມີຈຳໜ່າຍ</FormLabel>
                       <VStack align="stretch" spacing={3}>
                         <HStack>
                           <Input
                             value={newSize}
                             onChange={(e) => setNewSize(e.target.value)}
                             size="sm"
-                            placeholder="เลือกขนาด"
+                            placeholder="ຂະໜາດ"
                           />
 
                           <Button
@@ -1204,7 +1707,7 @@ console.log(selectedProduct)
                             colorScheme="purple"
                             leftIcon={<AddIcon />}
                           >
-                            เพิ่ม
+                            ເພີ່ມ
                           </Button>
                         </HStack>
                         <Wrap spacing={2}>
@@ -1229,7 +1732,7 @@ console.log(selectedProduct)
                             color="gray.500"
                             fontStyle="italic"
                           >
-                            ยังไม่มีขนาดที่เลือก
+                            ຍັງບໍ່ມີຂະໜາດທີ່ເລືອກ
                           </Text>
                         )}
                       </VStack>
@@ -1237,14 +1740,14 @@ console.log(selectedProduct)
 
                     {/* Colors Section */}
                     <Box>
-                      <FormLabel>สีที่มีจำหน่าย</FormLabel>
+                      <FormLabel>ສີທີຈຳໜ່າຍ</FormLabel>
                       <VStack align="stretch" spacing={3}>
                         <HStack>
                           <Input
                             value={newColor}
                             onChange={(e) => setNewColor(e.target.value)}
                             size="sm"
-                            placeholder="เลือกสี"
+                            placeholder="ສີ"
                           />
 
                           <Button
@@ -1253,7 +1756,7 @@ console.log(selectedProduct)
                             colorScheme="green"
                             leftIcon={<AddIcon />}
                           >
-                            เพิ่ม
+                            ເພີ່ມ
                           </Button>
                         </HStack>
                         <Wrap spacing={2}>
@@ -1278,7 +1781,7 @@ console.log(selectedProduct)
                             color="gray.500"
                             fontStyle="italic"
                           >
-                            ยังไม่มีสีที่เลือก
+                            ຍັງບໍ່ມີສີ
                           </Text>
                         )}
                       </VStack>
@@ -1292,20 +1795,24 @@ console.log(selectedProduct)
                       borderColor="blue.200"
                     >
                       <Text fontSize="sm" color="blue.700" fontWeight="medium">
-                        💡 เคล็ดลับ:
-                        ขนาดและสีที่หลากหลายจะช่วยเพิ่มโอกาสในการขาย
+                        💡 ເຄັດລັບ: ຂະໜາດ , ສີ, ແທ໋ກ
+                        ເປັນຕົວຊ່ວຍໃນການຊ່ວຍໃຫ້ລູກຄ້າຊອກຫາສິນຄ້າໄດ້ງ່າຍ
                       </Text>
                     </Box>
                   </Stack>
                   {/* Shipping Tab */}
                   <Stack spacing={4}>
-                    <Heading size="md" color="blue.600">
-                      ข้อมูลการจัดส่ง
+                    <Heading
+                      fontFamily={"Noto Sans Lao, serif"}
+                      size="md"
+                      color="blue.600"
+                    >
+                      ຂໍ້ມູນຈັດສົ່ງສິນຄ້າ
                     </Heading>
 
                     <HStack>
                       <FormControl>
-                        <FormLabel>น้ำหนัก (กิโลกรัม)</FormLabel>
+                        <FormLabel>ນໍ້າໜັກ (ກິໂລ)</FormLabel>
                         <NumberInput
                           value={selectedProduct.shipping_info?.weight || 0}
                           onChange={(value) =>
@@ -1326,7 +1833,7 @@ console.log(selectedProduct)
                       </FormControl>
 
                       <FormControl>
-                        <FormLabel>ค่าจัดส่ง (บาท)</FormLabel>
+                        <FormLabel>ຄ່າຈັດສົ່ງ (ກີບ)</FormLabel>
                         <NumberInput
                           value={
                             selectedProduct.shipping_info?.shipping_fee || 0
@@ -1348,7 +1855,7 @@ console.log(selectedProduct)
                     </HStack>
 
                     <Box>
-                      <FormLabel>ขนาดบรรจุภัณฑ์ (เซนติเมตร)</FormLabel>
+                      <FormLabel>ຂະໜາດບັນຈຸພັນ (cm)</FormLabel>
                       <HStack>
                         <FormControl>
                           <Input
@@ -1375,7 +1882,7 @@ console.log(selectedProduct)
                         <Text>×</Text>
                         <FormControl>
                           <Input
-                            placeholder="ความกว้าง"
+                            placeholder="ຄວາມກວ້າງ"
                             value={
                               selectedProduct.shipping_info?.dimensions
                                 ?.width || ""
@@ -1398,7 +1905,7 @@ console.log(selectedProduct)
                         <Text>×</Text>
                         <FormControl>
                           <Input
-                            placeholder="ความสูง"
+                            placeholder="ຄວາມສູງ"
                             value={
                               selectedProduct.shipping_info?.dimensions
                                 ?.height || ""
@@ -1419,8 +1926,9 @@ console.log(selectedProduct)
                           />
                         </FormControl>
                       </HStack>
+
                       <Text fontSize="xs" color="gray.500" mt={1}>
-                        ใส่ขนาดบรรจุภัณฑ์เพื่อคำนวณค่าจัดส่งที่แม่นยำ
+                        (ຄວາມຍາວ × ຄວາມກວ້າງ × ຄວາມສູງ)
                       </Text>
                     </Box>
 
@@ -1436,14 +1944,13 @@ console.log(selectedProduct)
                         color="orange.700"
                         fontWeight="medium"
                       >
-                        📦
-                        ข้อมูลการจัดส่งจะช่วยในการคำนวณค่าส่งและการเลือกบริการขนส่งที่เหมาะสม
+                        📦 ຂໍ້ມູນຈັດສົ່ງສິນຄ້າຈະຊ່ວຍໃນການຄຳນວນຄ່າຈັດສົ່ງ
                       </Text>
                     </Box>
                   </Stack>
                   {/* Enhanced Image Management Section */}
                   <FormControl>
-                    <FormLabel>รูปภาพสินค้า</FormLabel>
+                    <FormLabel>ຮູບພາບສິນຄ້າ</FormLabel>
 
                     {/* Upload and Add URL Buttons */}
                     <HStack spacing={2} mb={4}>
@@ -1454,7 +1961,7 @@ console.log(selectedProduct)
                         variant="outline"
                         cursor="pointer"
                       >
-                        📁 อัพโหลดรูป
+                        📁 ອັບໂຫລດຮູບພາບສີນຄ້າ
                         <Input
                           type="file"
                           multiple
@@ -1462,15 +1969,6 @@ console.log(selectedProduct)
                           onChange={handleImageUpload}
                           display="none"
                         />
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        colorScheme="green"
-                        variant="outline"
-                        onClick={addImageUrl}
-                      >
-                        🔗 เพิ่ม URL
                       </Button>
 
                       {selectedImages.length > 0 && (
@@ -1516,7 +2014,7 @@ console.log(selectedProduct)
                                 fontSize="xs"
                                 borderRadius="full"
                               >
-                                หลัก
+                                ຫຼັກ
                               </Badge>
                             )}
 
@@ -1594,10 +2092,10 @@ console.log(selectedProduct)
                         <VStack spacing={2}>
                           <Text fontSize="4xl">📷</Text>
                           <Text fontSize="sm" color="gray.500">
-                            ยังไม่มีรูปภาพ
+                            ຍັງບໍ່ມີຮູບພາບ
                           </Text>
                           <Text fontSize="xs" color="gray.400">
-                            อัพโหลดรูปหรือเพิ่ม URL เพื่อเริ่มต้น
+                            ອັບໂຫລດຮູບພາບ
                           </Text>
                         </VStack>
                       </Box>
@@ -1613,20 +2111,20 @@ console.log(selectedProduct)
                       borderColor="blue.200"
                     >
                       <Text fontSize="xs" color="blue.700" fontWeight="medium">
-                        💡 เคล็ดลับการจัดการรูปภาพ:
+                        💡 ເຄັດລັບໃນການມີຮູບພາບ:
                       </Text>
                       <VStack align="start" spacing={1} mt={1}>
                         <Text fontSize="xs" color="blue.600">
-                          • รูปแรกจะเป็นรูปหลักที่แสดงในตาราง
+                          • ຮູບທຳອິດຈະເປັນຮູບຫຼັກ
                         </Text>
                         <Text fontSize="xs" color="blue.600">
-                          • คลิก ⭐ เพื่อตั้งรูปใดรูปหนึ่งเป็นรูปหลัก
+                          • ກົດ ⭐ ເພື່ອຕັ້ງຮູບເປັນຮູບຫຼັກ
                         </Text>
                         <Text fontSize="xs" color="blue.600">
-                          • สามารถอัพโหลดหลายรูปพร้อมกันได้
+                          • ສາມາດອັບໂຫລດຫລາຍຮູບໄດ້
                         </Text>
                         <Text fontSize="xs" color="blue.600">
-                          • รองรับไฟล์ JPG, PNG, GIF และ WebP
+                          • ຮອງຮັບ JPG, PNG, GIF ແລະ WebP
                         </Text>
                       </VStack>
                     </Box>
@@ -1636,14 +2134,20 @@ console.log(selectedProduct)
                       colorScheme="blue"
                       onClick={handleSaveProduct}
                       flex={1}
+                      isLoading={loader}
                       isDisabled={
-                        !selectedProduct.name || !selectedProduct.description
+                        !selectedProduct.name ||
+                        !selectedProduct.description ||
+                        !selectedProduct.categoryId || // ✅ ເພີ່ມເງື່ອນໄຂນີ້
+                        selectedProduct.categoryId === "" ||
+                        typeof selectedProduct.categoryId === "object" ||
+                        selectedProduct.categoryId === "[object Object]"
                       }
                     >
-                      {isEditing ? "บันทึกการแก้ไข" : "เพิ่มสินค้า"}
+                      {isEditing ? "ບັນທຶກການແກ້ໄຂ" : "ເພີ່ມສິນຄ້າ"}
                     </Button>
                     <Button variant="ghost" onClick={onClose} flex={1}>
-                      ยกเลิก
+                      ຍົກເລີກ
                     </Button>
                   </HStack>
                 </Stack>

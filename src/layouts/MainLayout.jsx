@@ -39,28 +39,46 @@ import Outleted from "./Outleted";
 import { useDispatch, useSelector } from "react-redux";
 import { remove_logout } from "../hooks/reducer/auth_reducer";
 import { useNavigate } from "react-router-dom";
+import useSocket from "../pages/seller_pages/useSocket";
+import { memo } from "react";
 // Custom theme for better design
 const theme = extendTheme({
   config: {
     initialColorMode: "light",
     useSystemColorMode: false,
   },
-  styles: {
-    global: (props) => ({
-      body: {
-        bg: props.colorMode === "dark" ? "gray.900" : "gray.50",
+  semanticTokens: {
+    colors: {
+      
+      "bg.surface": {
+        default: "white",
+        _dark: "gray.800",
       },
-    }),
+      "text.primary": {
+        default: "gray.800",
+        _dark: "gray.100",
+      },
+      "text.secondary": {
+        default: "gray.600",
+        _dark: "gray.300",
+      },
+      "brand.primary": {
+        default: "blue.600",
+        _dark: "blue.300",
+      },
+    },
   },
 });
 
-const MenuItem = ({ item, isCollapsed, onClick, isActive }) => {
+
+const MenuItem = memo(({ item, isCollapsed, onClick, isActive }) => {
   const { colorMode } = useColorMode();
 
-  const hoverBg = useColorModeValue("blue.50", "blue.900");
-  const activeBg = useColorModeValue("blue.100", "blue.800");
-  const textColor = useColorModeValue("gray.700", "gray.200");
-  const activeTextColor = useColorModeValue("blue.600", "blue.300");
+  const hoverBg = { light: "blue.50", dark: "blue.900" }[colorMode];
+  const activeBg = { light: "blue.100", dark: "blue.800" }[colorMode];
+  const textColor = { light: "gray.700", dark: "gray.200" }[colorMode];
+  const activeText = { light: "blue.600", dark: "blue.300" }[colorMode];
+
   return (
     <Tooltip label={item.label} placement="right" isDisabled={!isCollapsed}>
       <Box
@@ -81,13 +99,7 @@ const MenuItem = ({ item, isCollapsed, onClick, isActive }) => {
           <Box position="relative">
             <item.icon
               size={20}
-              color={
-                isActive
-                  ? colorMode === "dark"
-                    ? "#90CDF4"
-                    : "#3182CE"
-                  : textColor
-              }
+              color={isActive ? activeText : textColor}
             />
             {item.badge && (
               <Badge
@@ -111,7 +123,7 @@ const MenuItem = ({ item, isCollapsed, onClick, isActive }) => {
             <Text
               fontSize="sm"
               fontWeight={isActive ? "semibold" : "medium"}
-              color={isActive ? activeTextColor : textColor}
+              color={isActive ? activeText : textColor}
               noOfLines={1}
             >
               {item.label}
@@ -121,7 +133,7 @@ const MenuItem = ({ item, isCollapsed, onClick, isActive }) => {
       </Box>
     </Tooltip>
   );
-};
+});
 
 const SidebarContent = ({
   isCollapsed,
@@ -129,9 +141,10 @@ const SidebarContent = ({
   onMenuClick,
   activeMenu,
   menuItems,
-  removeOff
+  removeOff,
+  exp,
 }) => {
-  const { colorMode, toggleColorMode } = useColorMode();
+  // const { colorMode, toggleColorMode } = useColorMode();
   const bgColor = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("gray.600", "gray.300");
@@ -165,10 +178,10 @@ const SidebarContent = ({
             <Avatar size="sm" name="Seller Store" bg="blue.500" />
             <Box>
               <Text fontSize="sm" fontWeight="bold" noOfLines={1}>
-                Seller Store
+                {exp.username}
               </Text>
               <Text fontSize="xs" color={textColor} noOfLines={1}>
-                Online Shop
+                {exp.phone}
               </Text>
             </Box>
           </HStack>
@@ -203,7 +216,7 @@ const SidebarContent = ({
 
       {/* Theme Toggle & Logout */}
       <VStack spacing={1} p={3} align="stretch">
-        <Tooltip
+        {/* <Tooltip
           label={`Switch to ${colorMode === "light" ? "Dark" : "Light"} Mode`}
           placement="right"
           isDisabled={!isCollapsed}
@@ -234,15 +247,15 @@ const SidebarContent = ({
               )}
             </HStack>
           </Box>
-        </Tooltip>
+        </Tooltip> */}
 
-        <Tooltip  label="Logout" placement="right" isDisabled={!isCollapsed}>
+        <Tooltip label="Logout" placement="right" isDisabled={!isCollapsed}>
           <Box
             w="full"
             cursor="pointer"
             borderRadius="lg"
             transition="all 0.2s"
-             onClick={removeOff}
+            onClick={removeOff}
             _hover={{ bg: useColorModeValue("red.50", "red.900") }}
           >
             <HStack
@@ -255,7 +268,7 @@ const SidebarContent = ({
               <FiLogOut size={20} />
               {!isCollapsed && (
                 <Text fontSize="sm" fontWeight="medium">
-                  Logout
+                 ອອກຈາກລະບົບ
                 </Text>
               )}
             </HStack>
@@ -272,8 +285,9 @@ const MobileSidebar = ({
   onMenuClick,
   activeMenu,
   menuItems,
+  exp,
 }) => {
-  const { colorMode, toggleColorMode } = useColorMode();
+  // const { colorMode, toggleColorMode } = useColorMode();
 
   const textColor = useColorModeValue("gray.600", "gray.300");
 
@@ -287,10 +301,10 @@ const MobileSidebar = ({
             <Avatar size="sm" name="Seller Store" bg="blue.500" />
             <Box>
               <Text fontSize="sm" fontWeight="bold">
-                Seller Store
+                {exp.username}
               </Text>
               <Text fontSize="xs" color={textColor}>
-                Online Shop
+                {exp.phone}
               </Text>
             </Box>
           </HStack>
@@ -317,7 +331,7 @@ const MobileSidebar = ({
           <Divider my={4} />
 
           <VStack spacing={1} align="stretch">
-            <Button
+            {/* <Button
               variant="ghost"
               leftIcon={colorMode === "light" ? <FiMoon /> : <FiSun />}
               onClick={toggleColorMode}
@@ -326,7 +340,7 @@ const MobileSidebar = ({
               size="sm"
             >
               {colorMode === "light" ? "Dark Mode" : "Light Mode"}
-            </Button>
+            </Button> */}
 
             <Button
               variant="ghost"
@@ -336,7 +350,7 @@ const MobileSidebar = ({
               fontWeight="medium"
               size="sm"
             >
-              Logout
+              ອອກຈາກລະບົບ
             </Button>
           </VStack>
         </DrawerBody>
@@ -351,15 +365,39 @@ const MainLayout = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [menuItems, setMenuItems] = useState([]);
   const { exp } = useSelector((state) => state.auth);
+  const { socket } = useSocket(exp?._id);
   useEffect(() => {
-    const navs = get_all_link_routes(exp?.role);
-    setMenuItems(navs);
-  }, [exp?.role]);
+    if (!socket) return;
+
+    socket.emit("registerUser", exp?._id);
+    const fetchConversations = () => {
+      socket.emit("conversation_all", { userId: exp?._id }, (response) => {
+        if (response.status === "ok") {
+          const unreadCount = response.data.reduce((acc, convo) => {
+            return acc + (convo.unreadCount || 0);
+          }, 0);
+          const navs = get_all_link_routes(exp?.role, unreadCount);
+          setMenuItems(navs);
+        } else {
+          console.error("Error:", response.message);
+        }
+      });
+    };
+
+    fetchConversations();
+    // ✅ ใช้ event ที่ server ส่งจริง
+    socket.on("updateUnreadCount", fetchConversations);
+    return () => {
+      socket.off("updateUnreadCount", fetchConversations);
+    };
+  }, [exp?.role, socket, exp?._id]);
+
   const isMobile = useBreakpointValue({ base: true, lg: false });
+  // 🎨 Light / Dark mode values
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const contentBg = useColorModeValue("white", "gray.800");
-  const dispatch =useDispatch()
-  const navigate =useNavigate()
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const handleToggle = () => {
     if (isMobile) {
       onOpen();
@@ -367,16 +405,16 @@ const MainLayout = () => {
       setIsCollapsed(!isCollapsed);
     }
   };
-  const removeOff=()=>{
-    dispatch(remove_logout())
-    navigate
-  }
+  const removeOff = () => {
+    dispatch(remove_logout());
+    navigate;
+  };
   const handleMenuClick = (menuName) => {
     setActiveMenu(menuName);
   };
 
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider bg={bgColor} theme={theme}>
       <ColorModeScript initialColorMode={theme.config.initialColorMode} />
       <Box bg={bgColor} minH="100vh">
         {/* Mobile Menu Button */}
@@ -393,8 +431,7 @@ const MainLayout = () => {
             />
           </Box>
         )}
- \
-        {/* Desktop Sidebar */}
+        \{/* Desktop Sidebar */}
         {!isMobile && (
           <SidebarContent
             isCollapsed={isCollapsed}
@@ -403,18 +440,18 @@ const MainLayout = () => {
             onMenuClick={handleMenuClick}
             activeMenu={activeMenu}
             menuItems={menuItems}
+            exp={exp}
           />
         )}
-
         {/* Mobile Sidebar (Drawer) */}
         <MobileSidebar
           isOpen={isOpen}
+          exp={exp}
           onClose={onClose}
           onMenuClick={handleMenuClick}
           activeMenu={activeMenu}
           menuItems={menuItems}
         />
-
         {/* Main Content Area */}
         <Box
           ml={isMobile ? 0 : isCollapsed ? "70px" : "260px"}
@@ -422,7 +459,6 @@ const MainLayout = () => {
           p={6}
           pt={isMobile ? 20 : 6}
         >
-          
           <Box
             bg={contentBg}
             borderRadius="xl"

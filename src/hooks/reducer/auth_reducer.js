@@ -9,7 +9,6 @@ export const verifyToken = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -34,7 +33,6 @@ export const seller_register = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -49,7 +47,6 @@ export const getVerifyUser = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -71,7 +68,6 @@ export const login = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -83,9 +79,9 @@ export const get_user = createAsyncThunk(
       const { data } = await api.get("/auth/get-user", {
         withCredentials: true,
       });
+
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -95,11 +91,6 @@ export const verifyUserCreate = createAsyncThunk(
   "auth/verifyUserCreate",
   async (info, { rejectWithValue, fulfillWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append("verificationData", info.verificationData);
-      formData.append("idCardImage", info.idCardImage);
-      formData.append("selfieImage", info.selfieImage);
-      formData.append("verificationStatus", info.verificationStatus);
       const { data } = await api.post("/auth/verify-user", info, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -108,7 +99,6 @@ export const verifyUserCreate = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -118,9 +108,9 @@ export const updateSellerReject = createAsyncThunk(
   "auth/updateSellerReject",
   async ({ formData, id }, { rejectWithValue, fulfillWithValue }) => {
     try {
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ":", pair[1]);
-      }
+      // for (let pair of formData.entries()) {
+      //   console.log(pair[0] + ":", pair[1]);
+      // }
 
       const { data } = await api.put(
         `/auth/update-seller-fix/${id}`,
@@ -134,7 +124,6 @@ export const updateSellerReject = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -144,8 +133,6 @@ export const updateSeller = createAsyncThunk(
   "auth/updateSeller",
   async (info, { rejectWithValue, fulfillWithValue }) => {
     try {
-      console.log("info.store_images", info); // 👉 ควรเป็น File หรือ Blob
-
       const formData = new FormData();
       formData.append("store_name", info?.store_name);
       formData.append("store_code", info?.store_code);
@@ -164,7 +151,6 @@ export const updateSeller = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -184,7 +170,6 @@ export const update_access_seller = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -202,7 +187,6 @@ export const unsubscribeNotification = createAsyncThunk(
       );
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
@@ -216,11 +200,28 @@ export const remove_logout = createAsyncThunk(
       });
       return fulfillWithValue(data);
     } catch (error) {
-      console.log(error.response.data);
       return rejectWithValue(error.response.data);
     }
   }
 );
+export const statusActive_seller = createAsyncThunk(
+  "auth/statusActive_seller",
+  async (sellerId, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.patch(
+        `/auth/statusActive_seller/${sellerId}`,
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 export const authReducer = createSlice({
   name: "auth",
   initialState: {
@@ -403,6 +404,18 @@ export const authReducer = createSlice({
         state.token = null;
         state.user = null;
         state.isAuthenticated = false;
+      })
+      //statusActive_seller
+      .addCase(statusActive_seller.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(statusActive_seller.rejected, (state, { payload }) => {
+        state.loader = false;
+        state.errorMessage = payload.message;
+      })
+      .addCase(statusActive_seller.fulfilled, (state, { payload }) => {
+        state.loader = false;
+        state.successMessage = payload.message;
       });
   },
 });

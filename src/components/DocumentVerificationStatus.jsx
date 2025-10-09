@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Flex,
@@ -14,167 +14,309 @@ import {
   Icon,
   useColorModeValue,
   Circle,
+  Progress,
+  Heading,
 } from "@chakra-ui/react";
-import { CheckCircleIcon, TimeIcon } from "@chakra-ui/icons";
+import { CheckCircleIcon, TimeIcon, WarningIcon } from "@chakra-ui/icons";
 import IdentityForm from "./IdentityForm";
 import VerificationSuccess from "./VerificationSuccess";
 
-const DocumentVerificationStatus = ({ sellerInfo_data }) => {
-  const [isSubmitted, setIsSubmitted] = useState(false);
+// Constants
+const VERIFICATION_STATUSES = {
+  ACCESS: "access",
+  PENDING: "pending",
+  REJECTED: "rejected",
+  DEFAULT: "default",
+};
+
+// Custom Hook สำหรับ Animation
+const useLoadingAnimation = (isActive) => {
   const [animationStep, setAnimationStep] = useState(0);
 
-  // สี theme สำหรับ light/dark mode
+  useEffect(() => {
+    if (!isActive) return;
+
+    const interval = setInterval(() => {
+      setAnimationStep((prev) => (prev + 1) % 4);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [isActive]);
+
+  return animationStep;
+};
+
+// Loading Animation Component
+const LoadingDots = ({ step }) => (
+  <Text as="span" color="blue.500">
+    {".".repeat(step)}
+  </Text>
+);
+
+// Verification Status Screen Component
+const VerificationStatusScreen = ({ status }) => {
   const bgColor = useColorModeValue("gray.50", "gray.900");
   const borderColor = useColorModeValue("gray.200", "gray.600");
   const textColor = useColorModeValue("gray.700", "gray.300");
   const primaryColor = useColorModeValue("blue.500", "blue.400");
-  
-  // จำลองการส่งเอกสาร
-  const handleSubmitDocument = () => {
-    setIsSubmitted(true);
-  };
 
-  // Animation สำหรับ loading dots
-  useEffect(() => {
-    if (isSubmitted) {
-      const interval = setInterval(() => {
-        setAnimationStep((prev) => (prev + 1) % 4);
-      }, 500);
-      return () => clearInterval(interval);
+  const animationStep = useLoadingAnimation(
+    status === VERIFICATION_STATUSES.PENDING
+  );
+
+  // Status configuration
+  const statusConfig = useMemo(() => {
+    switch (status) {
+      case VERIFICATION_STATUSES.PENDING:
+        return {
+          title: "ກຳລັງກວດສອບເອກະສານ",
+          subtitle: "ທາງທີມງານກຳລັງກວດສອບເອກະສານຂອງທ່ານ",
+          icon: TimeIcon,
+          color: primaryColor,
+          alertStatus: "info",
+          alertTitle: "ກວດສອບເອກະສານ",
+          alertDescription:
+            "ເຮົາຈະສົ່ງການແຈ້ງເຕືອນຜົນການກວດສອບໄປຍັງອີເມວຂອງທ່ານ ຫາກມີຂໍ້ສົງໄສສາມາດຕິດຕໍ່ທີມສະໜັບສໜູນໄດ້ຕະຫລອດ 24/7",
+          statusText: "ກຳລັງກວດສອບ",
+          estimatedTime: "24 ຊົ່ວໂມງ",
+          progress: 75,
+        };
+      case VERIFICATION_STATUSES.REJECTED:
+        return {
+          title: "ເອກະສານບໍ່ຜ່ານການກວດສອບ",
+          subtitle: "ກະລຸນາກວດສອບເອກະສານແລະອັບໂຫລດໃໝ່",
+          icon: WarningIcon,
+          color: "red.500",
+          alertStatus: "error",
+          alertTitle: "ການກວດສອບບໍ່ຜ່ານ",
+          alertDescription:
+            "ເອກະສານທີ່ສົ່ງມາບໍ່ຖືກຕ້ອງ ກະລຸນາກວດສອບແລະອັບໂຫລດໃໝ່",
+          statusText: "ຕ້ອງແກ້ໄຂ",
+          estimatedTime: "-",
+          progress: 25,
+        };
+      default:
+        return {
+          title: "ກະລຸນາສົ່ງເອກະສານ",
+          subtitle: "ອັບໂຫລດເອກະສານເພື່ອເລີ່ມຂັ້ນຕອນຢືນຢັນ",
+          icon: TimeIcon,
+          color: primaryColor,
+          alertStatus: "warning",
+          alertTitle: "ລໍຖ້າການສົ່ງເອກະສານ",
+          alertDescription: "ກະລຸນາອັບໂຫລດເອກະສານຢືນຢັນຕົວຕົນເພື່ອດຳເນີນການຕໍ່",
+          statusText: "ຍັງບໍ່ໄດ້ສົ່ງ",
+          estimatedTime: "-",
+          progress: 0,
+        };
     }
-  }, [isSubmitted]);
+  }, [status, primaryColor]);
 
-  // หน้าจอกำลังตรวจสอบ
-  const VerificationStatusScreen = () => (
+  return (
     <Center minH="100vh" bg={bgColor}>
-      <Box>
+      <Box maxW="500px" w="full" px={4}>
         <VStack spacing={8}>
-          {/* ไอคอนและ Spinner */}
+          {/* Icon และ Progress Ring */}
           <Box position="relative">
-            <Circle size="120px" bg={primaryColor} opacity={0.1}>
-              <Circle size="80px" bg={primaryColor} opacity={0.2}>
-                <Spinner
-                  thickness="4px"
-                  speed="0.8s"
-                  emptyColor="gray.200"
-                  color={primaryColor}
-                  size="xl"
-                />
+            <Box position="relative" w="120px" h="120px">
+              {/* วงกลมนอก (Glow Effect) */}
+              <Circle
+                size="120px"
+                bgGradient={`linear(to-br, ${statusConfig.color}20, ${statusConfig.color}40)`}
+                boxShadow={`0 0 20px ${statusConfig.color}80`}
+              />
+
+              {/* วงกลมกลาง */}
+              <Circle
+                size="90px"
+                bg={`${statusConfig.color}20`}
+                position="absolute"
+                top="50%"
+                left="50%"
+                transform="translate(-50%, -50%)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                boxShadow="md"
+              >
+                {status === VERIFICATION_STATUSES.PENDING ? (
+                  <Spinner
+                    thickness="4px"
+                    speed="0.8s"
+                    emptyColor="gray.200"
+                    color={statusConfig.color}
+                    size="xl"
+                  />
+                ) : (
+                  <Icon
+                    as={statusConfig.icon}
+                    boxSize={10}
+                    color={statusConfig.color}
+                  />
+                )}
               </Circle>
-            </Circle>
-            <Box
-              position="absolute"
-              top="50%"
-              left="50%"
-              transform="translate(-50%, -50%)"
-            >
-              <Icon as={TimeIcon} boxSize={8} color={primaryColor} />
+            </Box>
+
+            {/* Progress Ring */}
+            <Box position="absolute" top="0" left="0" w="120px" h="120px">
+              <Progress
+                value={statusConfig.progress}
+                size="lg"
+                colorScheme={
+                  status === VERIFICATION_STATUSES.REJECTED ? "red" : "blue"
+                }
+                bg="transparent"
+                sx={{
+                  "& > div": {
+                    borderRadius: "50%",
+                  },
+                }}
+              />
             </Box>
           </Box>
 
           {/* หัวข้อหลัก */}
           <Box textAlign="center">
-            <Text fontSize="3xl" fontWeight="bold" color={textColor} mb={2}>
-              กำลังตรวจสอบเอกสารของคุณ
-              <Text as="span" color={primaryColor}>
-                {".".repeat(animationStep)}
-              </Text>
-            </Text>
+            <Heading
+              fontFamily="Noto Sans Lao, serif"
+              fontSize="2xl"
+              fontWeight="bold"
+              color={textColor}
+              mb={2}
+            >
+              {statusConfig.title}
+              {status === VERIFICATION_STATUSES.PENDING && (
+                <LoadingDots step={animationStep} />
+              )}
+            </Heading>
             <Text fontSize="lg" color="gray.500" lineHeight="tall">
-              ทางทีมงานกำลังตรวจสอบข้อมูลของคุณ โปรดรอผลภายใน 24 ชั่วโมง
+              {statusConfig.subtitle}
             </Text>
           </Box>
 
-          {/* Alert box */}
+          {/* Alert Box */}
           <Alert
-            status="info"
+            status={statusConfig.alertStatus}
             variant="subtle"
             flexDirection="column"
             alignItems="center"
             justifyContent="center"
             textAlign="center"
-            height="auto"
             py={6}
             rounded="lg"
-            bg={useColorModeValue("blue.50", "blue.900")}
+            bg={useColorModeValue(
+              statusConfig.alertStatus === "error" ? "red.50" : "blue.50",
+              statusConfig.alertStatus === "error" ? "red.900" : "blue.900"
+            )}
             border="1px"
-            borderColor={useColorModeValue("blue.200", "blue.600")}
+            borderColor={useColorModeValue(
+              statusConfig.alertStatus === "error" ? "red.200" : "blue.200",
+              statusConfig.alertStatus === "error" ? "red.600" : "blue.600"
+            )}
           >
             <AlertIcon boxSize="40px" mr={0} mb={4} />
             <AlertTitle mt={0} mb={2} fontSize="lg" fontWeight="semibold">
-              การตรวจสอบเอกสาร
+              {statusConfig.alertTitle}
             </AlertTitle>
             <AlertDescription maxWidth="sm" fontSize="md">
-              เราจะส่งการแจ้งเตือนผลการตรวจสอบไปยังอีเมลของคุณ
-              หากมีข้อสงสัยสามารถติดต่อทีมสนับสนุนได้ตลอด 24 ชั่วโมง
+              {statusConfig.alertDescription}
             </AlertDescription>
           </Alert>
 
-          {/* ข้อมูลเพิ่มเติม */}
+          {/* Status Information */}
           <Flex
             w="full"
             justify="space-between"
             p={6}
-            bg={useColorModeValue("gray.50", "gray.700")}
+            bg={useColorModeValue("white", "gray.800")}
             rounded="lg"
             border="1px"
             borderColor={borderColor}
+            shadow="sm"
           >
             <Box>
               <Text fontSize="sm" color="gray.500" mb={1}>
-                สถานะ
+                ສະຖານະ
               </Text>
-              <Text fontSize="md" fontWeight="semibold" color={primaryColor}>
-                กำลังตรวจสอบ
+              <Text
+                fontSize="md"
+                fontWeight="semibold"
+                color={statusConfig.color}
+              >
+                {statusConfig.statusText}
               </Text>
             </Box>
             <Box textAlign="right">
               <Text fontSize="sm" color="gray.500" mb={1}>
-                เวลาโดยประมาณ
+                ເວລາໂດຍປະມານ
               </Text>
               <Text fontSize="md" fontWeight="semibold" color={textColor}>
-                24 ชั่วโมง
+                {statusConfig.estimatedTime}
               </Text>
             </Box>
           </Flex>
+
+          {/* Additional Actions for Rejected Status */}
+          {status === VERIFICATION_STATUSES.REJECTED && (
+            <Button
+              colorScheme="red"
+              variant="outline"
+              size="lg"
+              onClick={() => window.location.reload()}
+            >
+              ອັບໂຫລດເອກະສານໃໝ່
+            </Button>
+          )}
         </VStack>
       </Box>
     </Center>
   );
+};
 
-  // ถ้าไม่มีข้อมูล sellerInfo_data ให้แสดง loading
-  if (!sellerInfo_data) {
-    return (
-      <Box textAlign="center" py={10}>
-        <Spinner size="xl" color="blue.500" />
-        <Text mt={4} fontSize="lg" color="gray.500">
-          กำลังโหลดข้อมูลผู้ขาย...
-        </Text>
-      </Box>
-    );
-  }
+// Main Component
+const DocumentVerificationStatus = ({ sellerInfo_data }) => {
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  return (
-    <Box>
-      {sellerInfo_data?.verificationStatus === "access" ? (
-        <VerificationSuccess />
-      ) : sellerInfo_data?.verificationStatus === "rejected" ? (
-        // เพิ่ม sellerInfo_data ที่หายไป
-        <IdentityForm 
-          sellerInfo_data={sellerInfo_data}
-          handleSubmitDocument={handleSubmitDocument} 
-        />
-      ) : isSubmitted || sellerInfo_data?.verificationStatus === "pending" ? (
-        <VerificationStatusScreen />
-      ) : (
-        // ตรวจสอบให้แน่ใจว่าส่ง sellerInfo_data ไปเสมอ
+  // จำลองการส่งเอกສาร
+  const handleSubmitDocument = () => {
+    setIsSubmitted(true);
+  };
+
+  const currentStatus = sellerInfo_data?.verificationStatus;
+
+  // Determine which component to render
+  const renderComponent = () => {
+    // หากยืนยันสำเร็จแล้ว
+    if (currentStatus === VERIFICATION_STATUSES.ACCESS) {
+      return <VerificationSuccess />;
+    }
+
+    // หากถูกปฏิเสธ
+    if (currentStatus === VERIFICATION_STATUSES.REJECTED) {
+      return (
         <IdentityForm
           sellerInfo_data={sellerInfo_data}
           handleSubmitDocument={handleSubmitDocument}
         />
-      )}
-    </Box>
-  );
+      );
+    }
+
+    // หากกำลังรอการอนุมัติหรือเพิ่งส่งเอกสาร
+    if (isSubmitted || currentStatus === VERIFICATION_STATUSES.PENDING) {
+      return (
+        <VerificationStatusScreen status={VERIFICATION_STATUSES.PENDING} />
+      );
+    }
+
+    // หากยังไม่ได้ส่งเอกสาร (default case)
+    return (
+      <IdentityForm
+        sellerInfo_data={sellerInfo_data}
+        handleSubmitDocument={handleSubmitDocument}
+      />
+    );
+  };
+
+  return <Box>{renderComponent()}</Box>;
 };
 
 export default DocumentVerificationStatus;

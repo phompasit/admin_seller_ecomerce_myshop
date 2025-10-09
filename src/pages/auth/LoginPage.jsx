@@ -3,12 +3,10 @@ import {
   Box,
   Button,
   Container,
-  Divider,
   Flex,
   FormControl,
   FormLabel,
   Heading,
-  HStack,
   Input,
   InputGroup,
   InputRightElement,
@@ -19,11 +17,9 @@ import {
   useColorModeValue,
   useToast,
   IconButton,
-  Image,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-import { FaGoogle, FaFacebookF } from "react-icons/fa";
 import { login, messageClear } from "../../hooks/reducer/auth_reducer";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -49,8 +45,8 @@ const LoginPage = () => {
       setIsLoading(true);
       if (!phone || !password) {
         toast({
-          title: "กรุณากรอกข้อมูลให้ครบถ้วน",
-          description: "โปรดใส่อีเมลและรหัสผ่าน",
+          title: "ກະລຸນາລະບຸໃຫ້ຄົບຖ້ວນ",
+          description: "ໂປຣດໃສ່ເບີໂທແລະລະຫັດຜ່ານ",
           status: "warning",
           duration: 3000,
           isClosable: true,
@@ -62,7 +58,7 @@ const LoginPage = () => {
           phone: phone,
           password: password,
         })
-      );
+      )
     } catch (error) {
       toast({
         title: "Error",
@@ -76,19 +72,10 @@ const LoginPage = () => {
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    toast({
-      title: `เข้าสู่ระบบด้วย ${provider}`,
-      description: "กำลังเชื่อมต่อ...",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
   useEffect(() => {
     if (errorMessage) {
       toast({
-        title: "Error",
+        title: "ເກີດຂໍຜິດພາດ",
         description: errorMessage,
         status: "error",
         duration: 3000,
@@ -151,11 +138,11 @@ const LoginPage = () => {
                 <Stack spacing={4} w="full">
                   <FormControl id="phone" isRequired>
                     <FormLabel color={textColor} fontWeight="semibold">
-                      phone
+                      ເບີໂທລະສັບ
                     </FormLabel>
                     <Input
                       type="number"
-                      placeholder="กรอกphoneของคุณ"
+                      placeholder="ລະບຸເບິໂທລະສັບ"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       bg="white"
@@ -176,12 +163,12 @@ const LoginPage = () => {
 
                   <FormControl id="password" isRequired>
                     <FormLabel color={textColor} fontWeight="semibold">
-                      รหัสผ่าน
+                      ລະຫັດຜ່ານ
                     </FormLabel>
                     <InputGroup>
                       <Input
                         type={showPassword ? "text" : "password"}
-                        placeholder="กรอกรหัสผ่านของคุณ"
+                        placeholder="ລະບຸລະຫັດຜ່ານ"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         bg="white"
@@ -204,7 +191,7 @@ const LoginPage = () => {
                           size="sm"
                           onClick={() => setShowPassword(!showPassword)}
                           icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                          aria-label="แสดง/ซ่อนรหัสผ่าน"
+                          aria-label="ສະແດງລະຫັດຜ່ານ"
                         />
                       </InputRightElement>
                     </InputGroup>
@@ -219,7 +206,7 @@ const LoginPage = () => {
                         textDecoration: "none",
                       }}
                     >
-                      ลืมรหัสผ่าน?
+                      ລືມລະຫັດຜ່ານ?
                     </Link>
                   </Flex>
 
@@ -239,21 +226,21 @@ const LoginPage = () => {
                     fontWeight="bold"
                     fontSize="md"
                   >
-                    เข้าสู่ระบบ
+                    ເຂົ້າສູລະບົບ
                   </Button>
                 </Stack>
 
                 {/* Divider */}
-                <HStack w="full" spacing={4}>
+                {/* <HStack w="full" spacing={4}>
                   <Divider />
                   <Text color={textColor} fontSize="sm" fontWeight="medium">
                     หรือ
                   </Text>
                   <Divider />
-                </HStack>
+                </HStack> */}
 
                 {/* Social Login */}
-                <VStack spacing={3} w="full">
+                {/* <VStack spacing={3} w="full">
                   <Button
                     variant="outline"
                     size="lg"
@@ -289,11 +276,11 @@ const LoginPage = () => {
                   >
                     เข้าสู่ระบบด้วย Facebook
                   </Button>
-                </VStack>
+                </VStack> */}
 
                 {/* Sign up link */}
                 <Text color={textColor} fontSize="sm" textAlign="center">
-                  ยังไม่มีบัญชี?{" "}
+                  ຍັງບໍ່ມີບັນຊີ?{" "}
                   <Link
                     href={"/register"}
                     color="blue.500"
@@ -303,7 +290,7 @@ const LoginPage = () => {
                       textDecoration: "none",
                     }}
                   >
-                    สมัครสมาชิก
+                    ສະໝັກສະມາຊິກ
                   </Link>
                 </Text>
               </VStack>

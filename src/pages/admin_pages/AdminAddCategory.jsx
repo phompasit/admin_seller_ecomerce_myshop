@@ -255,10 +255,9 @@ const AdminAddCategory = () => {
         fileInputRef.current.value = "";
       }
     } catch (error) {
-      console.log(error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถเพิ่มหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง",
+        description: error.message||"ไม่สามารถเพิ่มหมวดหมู่ได้ กรุณาลองใหม่อีกครั้ง",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -280,7 +279,6 @@ const AdminAddCategory = () => {
     });
     onOpen();
   };
-  console.log("Edit category data:", editFormData);
   // Submit edit category
   const handleEditSubmit = async () => {
     const validationErrors = validateForm(editFormData);
@@ -389,10 +387,10 @@ const AdminAddCategory = () => {
       <VStack spacing={8} align="stretch">
         {/* Header */}
         <Box textAlign="center">
-          <Heading size="xl" color="blue.600" mb={2}>
-            จัดการหมวดหมู่สินค้า
+          <Heading  fontFamily={"Noto Sans Lao, serif"} size="xl" color="blue.600" mb={2}>
+            ຈັດການໝວດໝູ່ສິນຄ້າ
           </Heading>
-          <Text color="gray.600">เพิ่มและจัดการหมวดหมู่สินค้าในระบบ</Text>
+          <Text color="gray.600">ເພີ່ມແລະຈັດການໝວດໝູ່ສິນຄ້າ</Text>
         </Box>
 
         {/* Add Category Form */}
@@ -400,8 +398,8 @@ const AdminAddCategory = () => {
           <CardHeader bg="blue.50" borderTopRadius="xl">
             <HStack>
               <Plus size={24} color="#3182CE" />
-              <Heading size="lg" color="blue.600">
-                เพิ่มหมวดหมู่ใหม่
+              <Heading  fontFamily={"Noto Sans Lao, serif"} size="lg" color="blue.600">
+                ເພີ່ມໝວດໝູ່ໃໝ່
               </Heading>
             </HStack>
           </CardHeader>
@@ -411,12 +409,12 @@ const AdminAddCategory = () => {
               <VStack spacing={6} align="stretch">
                 {/* Category Name */}
                 <FormControl isInvalid={errors.name} isRequired>
-                  <FormLabel fontWeight="semibold">ชื่อหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຊື່ໝວດໝູ່</FormLabel>
                   <Input
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="กรอกชื่อหมวดหมู่..."
+                    placeholder="ລະບຸຊື່ໝວດໝູ່ສິນຄ້າ..."
                     size="lg"
                     focusBorderColor="blue.400"
                   />
@@ -425,12 +423,12 @@ const AdminAddCategory = () => {
 
                 {/* Category Description */}
                 <FormControl>
-                  <FormLabel fontWeight="semibold">คำอธิบายหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຄຳອະທິບາຍໝວດໝູ່</FormLabel>
                   <Textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
-                    placeholder="กรอกคำอธิบายหมวดหมู่ (ไม่จำเป็น)..."
+                    placeholder="ລະບຸຄຳອະທິບາຍໝວດໝູ່ (ບໍ່ບັງຄັບ)..."
                     size="lg"
                     focusBorderColor="blue.400"
                     resize="vertical"
@@ -440,7 +438,7 @@ const AdminAddCategory = () => {
 
                 {/* Image Upload */}
                 <FormControl>
-                  <FormLabel fontWeight="semibold">รูปภาพหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຮູບພາບໝວດໝູ່</FormLabel>
                   <VStack spacing={4} align="stretch">
                     <Input
                       type="file"
@@ -487,9 +485,9 @@ const AdminAddCategory = () => {
                         borderStyle="dashed"
                       >
                         <ImageIcon size={32} />
-                        <Text mt={2}>คลิกเพื่ออัปโหลดรูปภาพ</Text>
+                        <Text mt={2}>ກົດເພື່ອອັບໂຫລດຮູບພາບ</Text>
                         <Text fontSize="sm" color="gray.500">
-                          รองรับไฟล์ JPG, PNG (ไม่เกิน 5MB)
+                          ຮອງຮັບຂະໜາດ JPG, PNG (ไม่เกิน 5MB)
                         </Text>
                       </Button>
                     )}
@@ -501,7 +499,7 @@ const AdminAddCategory = () => {
                   <HStack justify="space-between">
                     <VStack align="start" spacing={1}>
                       <FormLabel mb={0} fontWeight="semibold">
-                        สถานะหมวดหมู่
+                        ສະຖານະໝວດໝູ່
                       </FormLabel>
                       <Text fontSize="sm" color="gray.600">
                         {formData.status ? "เปิดใช้งาน" : "ปิดใช้งาน"}
@@ -533,17 +531,17 @@ const AdminAddCategory = () => {
                     leftIcon={<X size={20} />}
                     size="lg"
                   >
-                    ยกเลิก
+                    ຍົກເລີກ
                   </Button>
                   <Button
                     type="submit"
                     colorScheme="blue"
                     leftIcon={<Save size={20} />}
                     isLoading={isSubmitting}
-                    loadingText="กำลังบันทึก..."
+                    loadingText="ກຳລັງບັນທຶກ..."
                     size="lg"
                   >
-                    บันทึกหมวดหมู่
+                    ບັນທຶກໝວດໝູ່
                   </Button>
                 </HStack>
               </VStack>
@@ -554,8 +552,8 @@ const AdminAddCategory = () => {
         {/* Categories List */}
         <Card shadow="lg" borderRadius="xl">
           <CardHeader bg="green.50" borderTopRadius="xl">
-            <Heading size="lg" color="green.600">
-              รายการหมวดหมู่ทั้งหมด
+            <Heading  fontFamily={"Noto Sans Lao, serif"} size="lg" color="green.600">
+              ລາຍການໝວດໝູ່ທັງໝົດ
             </Heading>
           </CardHeader>
 
@@ -564,11 +562,11 @@ const AdminAddCategory = () => {
               <Table variant="simple">
                 <Thead>
                   <Tr>
-                    <Th>รูปภาพ</Th>
-                    <Th>ชื่อหมวดหมู่</Th>
-                    <Th>คำอธิบาย</Th>
-                    <Th>สถานะ</Th>
-                    <Th textAlign="center">จัดการ</Th>
+                    <Th>ຮູບພາບໝວດໝູ່</Th>
+                    <Th>ຊື່ໝວດໝູ່</Th>
+                    <Th>ຄຳອະທິບາຍໝວດໝູ່</Th>
+                    <Th>ສະຖານະໝວດໝູ່</Th>
+                    <Th textAlign="center">ຈັດການ</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -595,7 +593,7 @@ const AdminAddCategory = () => {
                           py={1}
                           borderRadius="full"
                         >
-                          {category.status ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                          {category.status ? "ເປີດໃຊ້ງານ" : "ປິດໃຊ້ງານ"}
                         </Badge>
                       </Td>
                       <Td>
@@ -628,30 +626,30 @@ const AdminAddCategory = () => {
         <Modal isOpen={isOpen} onClose={onClose} size="2xl">
           <ModalOverlay />
           <ModalContent>
-            <ModalHeader color="blue.600">แก้ไขหมวดหมู่</ModalHeader>
+            <ModalHeader color="blue.600">ແກ້ໄຂໝວດໝູ່</ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               <VStack spacing={4} align="stretch">
                 {/* Edit Category Name */}
                 <FormControl isRequired>
-                  <FormLabel fontWeight="semibold">ชื่อหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຊື່ໝວດໝູ່</FormLabel>
                   <Input
                     name="name"
                     value={editFormData.name}
                     onChange={handleEditInputChange}
-                    placeholder="กรอกชื่อหมวดหมู่..."
+                    placeholder="ລະບຸຊື່ໝວດໝູ່..."
                     focusBorderColor="blue.400"
                   />
                 </FormControl>
 
                 {/* Edit Category Description */}
                 <FormControl>
-                  <FormLabel fontWeight="semibold">คำอธิบายหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຄຳອະທິບາຍໝວດໝູ່</FormLabel>
                   <Textarea
                     name="description"
                     value={editFormData.description}
                     onChange={handleEditInputChange}
-                    placeholder="กรอกคำอธิบายหมวดหมู่..."
+                    placeholder="ຄຳອະທິບາຍໝວດໝູ່..."
                     focusBorderColor="blue.400"
                     resize="vertical"
                     minH="80px"
@@ -660,7 +658,7 @@ const AdminAddCategory = () => {
 
                 {/* Edit Image Upload */}
                 <FormControl>
-                  <FormLabel fontWeight="semibold">รูปภาพหมวดหมู่</FormLabel>
+                  <FormLabel fontWeight="semibold">ຮູບພາບໝວດໝູ່</FormLabel>
                   <VStack spacing={3} align="stretch">
                     <Input
                       type="file"
@@ -705,7 +703,7 @@ const AdminAddCategory = () => {
                   <HStack justify="space-between">
                     <VStack align="start" spacing={1}>
                       <FormLabel mb={0} fontWeight="semibold">
-                        สถานะหมวดหมู่
+                        ສະຖານະໝວດໝູ່
                       </FormLabel>
                       <Text fontSize="sm" color="gray.600">
                         {editFormData.status ? "เปิดใช้งาน" : "ปิดใช้งาน"}
@@ -737,7 +735,7 @@ const AdminAddCategory = () => {
                 w="full"
               >
                 <Button variant="ghost" onClick={onClose} flex={1}>
-                  ยกเลิก
+                  ຍົກເລີກ
                 </Button>
                 <Button
                   colorScheme="blue"
@@ -745,7 +743,7 @@ const AdminAddCategory = () => {
                   leftIcon={<Save size={16} />}
                   flex={1}
                 >
-                  บันทึกการแก้ไข
+                  ບັນທຶກການແກ້ໄຂ
                 </Button>
               </Stack>
             </ModalFooter>
