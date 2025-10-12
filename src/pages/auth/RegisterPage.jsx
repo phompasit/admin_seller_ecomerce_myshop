@@ -18,26 +18,23 @@ import {
   InputRightElement,
   Link,
   Progress,
-  Stack,
   Text,
   VStack,
-  HStack,
   Icon,
   useToast,
   Spinner,
   useColorModeValue,
+  InputLeftAddon,
 } from "@chakra-ui/react";
 import {
   FaUser,
   FaEnvelope,
   FaLock,
-  FaPhone,
   FaEye,
   FaEyeSlash,
   FaShoppingCart,
 } from "react-icons/fa";
 import { useDispatch } from "react-redux";
-// import { useNavigate } from "react-router-dom";
 import { seller_register } from "../../hooks/reducer/auth_reducer";
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -49,8 +46,7 @@ const RegisterPage = () => {
     agreeTerms: false,
   });
   const dispatch = useDispatch();
-  // const { successMessage, errorMessage } = useSelector((state) => state?.auth);
-  // const navigate = useNavigate();
+
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -90,7 +86,9 @@ const RegisterPage = () => {
     if (!formData.username.trim()) {
       newErrors.username = "ກະລຸນາລະບຸຊື່ເຕັມ";
     }
-
+    if (!formData.phone.startsWith("20")) {
+      newErrors.phone = "ເບີໂທລະສັບຕ້ອງຂື້ນຕົ້ນດ້ວຍ 20";
+    }
     if (!formData.email.trim()) {
       newErrors.email = "ກະລຸນາລະບຸອິເມວ";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -180,39 +178,8 @@ const RegisterPage = () => {
     }
   };
 
-  // const handleOAuthSignup = (provider) => {
-  //   toast({
-  //     title: `สมัครสมาชิกด้วย ${provider}`,
-  //     description: "ฟีเจอร์นี้อยู่ระหว่างการพัฒนา",
-  //     status: "info",
-  //     duration: 3000,
-  //     isClosable: true,
-  //   });
-  // };
-
   const cardBg = useColorModeValue("white", "gray.800");
-  // useEffect(() => {
-  //   if (errorMessage) {
-  //     toast({
-  //       title: "Error",
-  //       description: errorMessage,
-  //       status: "error",
-  //       duration: 3000,
-  //       isClosable: true,
-  //     });
-  //     dispatch(messageClear());
-  //   }
-  //   if (successMessage) {
-  //     toast({
-  //       title: "Success",
-  //       description: successMessage,
-  //       status: "success",
-  //       duration: 3000,
-  //       isClosable: true,
-  //     });
-  //     dispatch(messageClear());
-  //   }
-  // }, [errorMessage, successMessage, dispatch, navigate, toast]);
+
   return (
     <>
       <Box minH="100vh" py={{ base: 8, md: 16 }}>
@@ -369,17 +336,30 @@ const RegisterPage = () => {
                   </FormControl>
 
                   {/* Phone Number */}
+
                   <FormControl isInvalid={errors.phone}>
-                    <FormLabel>ເບີີໂທລະສັບ</FormLabel>
+                    <FormLabel>ເບີໂທລະສັບ</FormLabel>
                     <InputGroup>
-                      <InputLeftElement>
-                        <Icon as={FaPhone} color="gray.400" />
-                      </InputLeftElement>
+                      <InputLeftAddon children="+856" bg="gray.100" />
                       <Input
                         name="phone"
-                        placeholder="20XXXX"
+                        type="tel"
+                        placeholder="20xxxxxxx"
                         value={formData.phone}
-                        onChange={handleInputChange}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, ""); // ลบอักษรที่ไม่ใช่ตัวเลข
+                          if (!value.startsWith("20")) {
+                            setErrors({ ...errors, phone: "ຕ້ອງເລີ່ມດ້ວຍ 20" });
+                          } else if (value.length < 8) {
+                            setErrors({
+                              ...errors,
+                              phone: "ເບີຕ້ອງມີຢ່າງນ້ອຍ 8 ຕົວເລກ",
+                            });
+                          } else {
+                            setErrors({ ...errors, phone: "" });
+                          }
+                          setFormData({ ...formData, phone: value });
+                        }}
                         borderRadius="lg"
                       />
                     </InputGroup>

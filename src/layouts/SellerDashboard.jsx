@@ -26,7 +26,6 @@ import {
   ColorModeScript,
 } from "@chakra-ui/react";
 import {
-
   FiLogOut,
   FiMenu,
   FiSun,
@@ -120,13 +119,19 @@ const MenuItem = ({ item, isCollapsed, onClick, isActive }) => {
   );
 };
 
-const SidebarContent = ({ isCollapsed, onToggle, onMenuClick, activeMenu,menuItems }) => {
+const SidebarContent = ({
+  isCollapsed,
+  onToggle,
+  onMenuClick,
+  activeMenu,
+  menuItems,
+}) => {
   const { colorMode, toggleColorMode } = useColorMode();
   const bgColor = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const textColor = useColorModeValue("gray.600", "gray.300");
   // Menu items data
- 
+
   return (
     <Box
       bg={bgColor}
@@ -253,7 +258,13 @@ const SidebarContent = ({ isCollapsed, onToggle, onMenuClick, activeMenu,menuIte
   );
 };
 
-const MobileSidebar = ({ isOpen, onClose, onMenuClick, activeMenu ,menuItems }) => {
+const MobileSidebar = ({
+  isOpen,
+  onClose,
+  onMenuClick,
+  activeMenu,
+  menuItems,
+}) => {
   const { colorMode, toggleColorMode } = useColorMode();
 
   const textColor = useColorModeValue("gray.600", "gray.300");
@@ -328,7 +339,7 @@ const SellerDashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeMenu, setActiveMenu] = useState("Dashboard");
   const { isOpen, onOpen, onClose } = useDisclosure();
- const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   useEffect(() => {
     const role = "sellers";
     const navs = get_all_link_routes(role);

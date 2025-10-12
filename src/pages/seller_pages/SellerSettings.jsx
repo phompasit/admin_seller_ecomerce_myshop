@@ -85,8 +85,7 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 const ERROR_MESSAGES = {
   FILE_TOO_LARGE: "file ບໍເກີນ (ສູງສຸດ 2MB)",
   INVALID_FILE_TYPE: "ປະເພດໄຟລບໍ່ຖືກຕ້ອງ (ຮອງຮັບສະເພາະ JPG, PNG)",
-  NOTIFICATION_DENIED:
-    "ທ່ານເຄີຍປະຕິເສດການແຈ້ງເຕືອນ",
+  NOTIFICATION_DENIED: "ທ່ານເຄີຍປະຕິເສດການແຈ້ງເຕືອນ",
   SAVE_ERROR: "ເກີດຂໍ້ຜຶດພາດໃນການບັນທຶກ",
   LOAD_ERROR: "ເກີດຂໍ້ຜິດພາດໃນການໂຫລດຂໍ້ມູນ",
 };
@@ -318,8 +317,8 @@ const SellerSettings = () => {
   const handleSave = useCallback(async () => {
     if (!isVerified && verificationStatus !== VERIFICATION_STATUS.NONE) {
       toast({
-        title: "ไม่สามารถบันทึกได้",
-        description: "กรุณารอการยืนยันตัวตนให้เสร็จสิ้นก่อน",
+        title: "ບໍ່ສາມາດບັນທຶກຂໍ້ມູນໄດ້",
+        description: "ກະລຸນາລໍຖ້າການຍືນຍັນຕົວຕົນໃຫ້ສຳເລັດກ່ອນ",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -336,15 +335,26 @@ const SellerSettings = () => {
         ...paymentSettings,
       };
 
-      await dispatch(updateSeller(updateData));
+      const res = await dispatch(updateSeller(updateData));
+      console.log(res)
+      if (res.error.message === "Rejected") {
+        toast({
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: res.payload?.message || ERROR_MESSAGES.SAVE_ERROR,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "ສຳເລັດ",
+          description: res.payload?.message,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
 
-      toast({
-        title: "ບັນທຶກສຳເລັດ!",
-        description: "ຂໍ້ມູນການຕັ້ງຄ່າສຳເລັດແລ້ວ",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
     } catch (error) {
       console.error("Save error:", error);
       toast({
@@ -377,7 +387,7 @@ const SellerSettings = () => {
       const validation = validateImageFile(file);
       if (!validation.isValid) {
         toast({
-          title: "ไฟล์ไม่ถูกต้อง",
+          title: "file ບໍ່ຖືກຕ້ອງ",
           description: validation.error,
           status: "error",
           duration: 3000,
@@ -416,7 +426,7 @@ const SellerSettings = () => {
       } catch (error) {
         toast({
           title: "ເກີດຂໍ້ຜິດພາດ",
-          description:error.message || "ບໍ່ສາມາດອັບໂຫລດຮູບພາບໄດ້",
+          description: error.message || "ບໍ່ສາມາດອັບໂຫລດຮູບພາບໄດ້",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -471,7 +481,7 @@ const SellerSettings = () => {
     } catch (error) {
       toast({
         title: "ເກີດຂໍ້ຜິດພາດ",
-        description: error.message ||"ບໍ່ສາມາດປ່ຽນການຕັ້ງຄ່າແຈ້ງເຕືອນໄດ້",
+        description: error.message || "ບໍ່ສາມາດປ່ຽນການຕັ້ງຄ່າແຈ້ງເຕືອນໄດ້",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -623,18 +633,20 @@ const SellerSettings = () => {
               pt={4}
               display={{ base: "none", lg: "block" }}
             >
-              <Button
-                colorScheme="blue"
-                size={buttonSize}
-                onClick={handleSave}
-                isLoading={isLoading}
-                loadingText="ກຳລັງບັນທຶກ..."
-                leftIcon={<FaCheck />}
-                width="full"
-                isDisabled={!canEditProfile}
-              >
-                ບັນທຶກໂປຣໄຟລ
-              </Button>
+              {isVerified && (
+                <Button
+                  colorScheme="blue"
+                  size={buttonSize}
+                  onClick={handleSave}
+                  isLoading={isLoading}
+                  loadingText="ກຳລັງບັນທຶກ..."
+                  leftIcon={<FaCheck />}
+                  width="full"
+                  isDisabled={!canEditProfile}
+                >
+                  ບັນທຶກໂປຣໄຟລ
+                </Button>
+              )}
             </Box>
           </TabList>
 
@@ -1150,7 +1162,6 @@ const SellerSettings = () => {
 
         {/* Mobile Save Button - Show only on smaller screens */}
         <Box
-          position="sticky"
           bottom={4}
           display={{ base: "block", lg: "none" }}
           bg={cardBg}
@@ -1160,18 +1171,20 @@ const SellerSettings = () => {
           border="1px solid"
           borderColor={borderColor}
         >
-          <Button
-            colorScheme="blue"
-            size="lg"
-            onClick={handleSave}
-            isLoading={isLoading}
-            loadingText="ກຳລັງບັນທຶກ..."
-            leftIcon={<FaCheck />}
-            width="full"
-            isDisabled={!canEditProfile}
-          >
-            ບັນທຶກໂປຣໄຟລ
-          </Button>
+          {isVerified && (
+            <Button
+              colorScheme="blue"
+              size="lg"
+              onClick={handleSave}
+              isLoading={isLoading}
+              loadingText="ກຳລັງບັນທຶກ..."
+              leftIcon={<FaCheck />}
+              width="full"
+              isDisabled={!canEditProfile}
+            >
+              ບັນທຶກໂປຣໄຟລ
+            </Button>
+          )}
 
           {!canEditProfile && (
             <Text fontSize="xs" color="red.500" textAlign="center" mt={2}>

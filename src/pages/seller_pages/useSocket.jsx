@@ -42,7 +42,6 @@ const useSocket = (userId) => {
     const handleConnect = () => {
       setIsConnected(true);
       // ใช้ event ที่มีใน server จริง
-      socket.emit("access_verify_seller_notification", userId);
     };
 
     const handleDisconnect = (reason) => {
@@ -53,7 +52,6 @@ const useSocket = (userId) => {
     const handleReconnect = () => {
       console.log("🔄 Socket reconnected");
       setIsConnected(true);
-      socket.emit("access_verify_seller_notification", userId);
     };
 
     const handleConnectError = (err) => {
@@ -86,7 +84,7 @@ const useSocket = (userId) => {
       }
       setIsConnected(false);
     };
-  }, [userId]);
+  }, [userId, token]);
 
   // Helper function เพื่อ emit events อย่างปลอดภัย
   const emit = useCallback((event, data, callback) => {

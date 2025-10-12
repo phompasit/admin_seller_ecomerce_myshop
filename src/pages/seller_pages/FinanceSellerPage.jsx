@@ -684,7 +684,7 @@ const FinanceSellerPage = () => {
                 onClick={handleWithdraw}
                 leftIcon={<Send size={16} />}
                 isLoading={isLoading}
-                loadingText="กำลังส่ง..."
+                loadingText="ກຳລັງສົ່ງ..."
               >
                 ສົ່ງຄຳຂໍຖອນເງິນ
               </Button>

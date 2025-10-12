@@ -49,7 +49,6 @@ const theme = extendTheme({
   },
   semanticTokens: {
     colors: {
-      
       "bg.surface": {
         default: "white",
         _dark: "gray.800",
@@ -69,7 +68,6 @@ const theme = extendTheme({
     },
   },
 });
-
 
 const MenuItem = memo(({ item, isCollapsed, onClick, isActive }) => {
   const { colorMode } = useColorMode();
@@ -97,10 +95,7 @@ const MenuItem = memo(({ item, isCollapsed, onClick, isActive }) => {
           justify={isCollapsed ? "center" : "flex-start"}
         >
           <Box position="relative">
-            <item.icon
-              size={20}
-              color={isActive ? activeText : textColor}
-            />
+            <item.icon size={20} color={isActive ? activeText : textColor} />
             {item.badge && (
               <Badge
                 position="absolute"
@@ -268,7 +263,7 @@ const SidebarContent = ({
               <FiLogOut size={20} />
               {!isCollapsed && (
                 <Text fontSize="sm" fontWeight="medium">
-                 ອອກຈາກລະບົບ
+                  ອອກຈາກລະບົບ
                 </Text>
               )}
             </HStack>

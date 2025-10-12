@@ -46,7 +46,7 @@ const AuthProvider = ({ children }) => {
     );
   }
 
-  // ไม่ต้องให้เข้า route ถ้ายังไม่มี token
+  // ກວດເງື່ອນໄຂ token
   if (!token) {
     return <Navigate to="/login" replace />;
   }

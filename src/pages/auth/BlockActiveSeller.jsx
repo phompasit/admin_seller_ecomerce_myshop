@@ -30,7 +30,12 @@ const BlockActiveSeller = () => {
           {/* Block Icon */}
           <Box textAlign="center">
             <Icon as={MdBlock} boxSize="80px" color="red.500" mb={4} />
-            <Heading                     fontFamily={"Noto Sans Lao, serif"} size="xl" color="red.600" mb={2}>
+            <Heading
+              fontFamily={"Noto Sans Lao, serif"}
+              size="xl"
+              color="red.600"
+              mb={2}
+            >
               ບັນຊີຖືກປິດການໃຊ້ງານ
             </Heading>
             <Text color="gray.600" fontSize="lg">
@@ -56,7 +61,11 @@ const BlockActiveSeller = () => {
           <Card w="full" bg={cardBg}>
             <CardBody>
               <VStack spacing={4}>
-                <Heading                     fontFamily={"Noto Sans Lao, serif"} size="md" color="gray.700">
+                <Heading
+                  fontFamily={"Noto Sans Lao, serif"}
+                  size="md"
+                  color="gray.700"
+                >
                   ຕິດຕໍ່ຝ່າຍສະໜັບສະໜູນ
                 </Heading>
 

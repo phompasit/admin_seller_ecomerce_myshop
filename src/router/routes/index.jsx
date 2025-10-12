@@ -21,6 +21,13 @@ export const getRoutes = () => {
     children: protectedRoutes,
   };
 };
+
+
+
+
+
+
+
 // export const getRoutes = () => {
 //  const protectedRoutes = privateRoutes.map((route) => ({
 //   ...route,

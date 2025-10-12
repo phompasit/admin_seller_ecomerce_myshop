@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, {useState } from "react";
 import {
   Box,
   Button,
@@ -21,7 +21,7 @@ import {
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { login, messageClear } from "../../hooks/reducer/auth_reducer";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage = () => {
@@ -29,7 +29,6 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { errorMessage, successMessage } = useSelector((state) => state.auth);
   const toast = useToast();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -53,16 +52,37 @@ const LoginPage = () => {
         });
         return;
       }
-      dispatch(
+      const res = await dispatch(
         login({
           phone: phone,
           password: password,
         })
-      )
+      );
+      if (res?.error?.message === "Rejected") {
+        toast({
+          title: "ເກີດຂໍ້ຜິດພາດ",
+          description: res?.payload?.message,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        dispatch(messageClear());
+      }
+      if (res?.meta?.requestStatus === "fulfilled") {
+        toast({
+          title: "ຍິນດີຕ້ອນຮັບ",
+          description: res.payload?.message,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        navigate("/");
+        dispatch(messageClear());
+      }
     } catch (error) {
       toast({
-        title: "Error",
-        description: error,
+        title: "ເກີດຂໍ້ຜິດພາດ",
+        description: error || String(error),
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -72,29 +92,29 @@ const LoginPage = () => {
     }
   };
 
-  useEffect(() => {
-    if (errorMessage) {
-      toast({
-        title: "ເກີດຂໍຜິດພາດ",
-        description: errorMessage,
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      dispatch(messageClear());
-    }
-    if (successMessage) {
-      toast({
-        title: "Success",
-        description: successMessage,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate("/");
-      dispatch(messageClear());
-    }
-  }, [errorMessage, successMessage, dispatch, navigate, toast]);
+  // useEffect(() => {
+  //   if (errorMessage) {
+  //     toast({
+  //       title: "ເກີດຂໍຜິດພາດ",
+  //       description: errorMessage,
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     dispatch(messageClear());
+  //   }
+  //   if (successMessage) {
+  //     toast({
+  //       title: "Success",
+  //       description: successMessage,
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     navigate("/");
+  //     dispatch(messageClear());
+  //   }
+  // }, [errorMessage, successMessage, dispatch, navigate, toast]);
   return (
     <>
       <Box
@@ -201,6 +221,7 @@ const LoginPage = () => {
                     <Link
                       color="blue.500"
                       fontSize="sm"
+                      href="/forgot-password"
                       _hover={{
                         color: "blue.600",
                         textDecoration: "none",
@@ -215,7 +236,7 @@ const LoginPage = () => {
                     size="lg"
                     w="full"
                     isLoading={isLoading}
-                    loadingText="กำลังเข้าสู่ระบบ..."
+                    loadingText="ກຳລັງເຂົ້າສູ່ລະບົບ..."
                     onClick={handleLogin}
                     rounded="lg"
                     _hover={{

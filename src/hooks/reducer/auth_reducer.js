@@ -222,6 +222,84 @@ export const statusActive_seller = createAsyncThunk(
   }
 );
 
+///send otp
+export const send_otp = createAsyncThunk(
+  "auth/send_otp",
+  async ({ phone, reset }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.post(
+        "/sms/send_otp",
+        { phone },
+        { withCredentials: true }
+      );
+
+      // เงื่อนไข redirect
+      if (reset !== "reset") {
+        // ถ้าไม่ใช่ reset → redirect ไป OTP page
+        if (data.phone) {
+          window.location.href = `/otp-verification/${data.phone}/${data.uuid}`;
+        }
+      }
+      // ถ้าเป็น reset → ไม่ต้อง redirect, แค่ return data
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+///verify-otp
+export const verify_otp = createAsyncThunk(
+  "auth/verify_otp",
+  async ({ phone, otp, uuid }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.post(
+        "/sms/verifyOtp",
+        { phone, otp },
+        {
+          withCredentials: true,
+        }
+      );
+      if (data.phone) {
+        window.location.href = `/reset-password/${data.phone}/${otp}/${uuid}`;
+      }
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+//get-user-for-otp
+export const get_otp = createAsyncThunk(
+  "auth/get_otp",
+  async ({ phone }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.get(`/sms/get_otp/${phone}`, {
+        withCredentials: true,
+      });
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+export const reset_password = createAsyncThunk(
+  "auth/reset_password",
+  async ({ phone, otp, password }, { rejectWithValue, fulfillWithValue }) => {
+    try {
+      const { data } = await api.post(
+        `/sms/reset_password`,
+        { phone, otp, password },
+        {
+          withCredentials: true,
+        }
+      );
+      return fulfillWithValue(data);
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
 export const authReducer = createSlice({
   name: "auth",
   initialState: {
@@ -235,6 +313,8 @@ export const authReducer = createSlice({
     sellerInfo_data: {},
     isInitialized: false, // เพิ่ม field นี้
     isAuthenticated: false, // เพิ่มเพื่อความชัดเจน
+    otpExpires: null,
+    resetuuid: null,
   },
   reducers: {
     messageClear: (state) => {
@@ -416,6 +496,43 @@ export const authReducer = createSlice({
       .addCase(statusActive_seller.fulfilled, (state, { payload }) => {
         state.loader = false;
         state.successMessage = payload.message;
+      })
+      ///send_otp
+      .addCase(send_otp.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(send_otp.rejected, (state, { payload }) => {
+        state.loader = false;
+        state.errorMessage = payload?.message || "Failed";
+      })
+      .addCase(send_otp.fulfilled, (state, { payload }) => {
+        state.loader = false;
+        state.successMessage = payload?.message;
+      })
+      ///get_otp
+      .addCase(get_otp.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(get_otp.rejected, (state, { payload }) => {
+        state.loader = false;
+        state.errorMessage = payload?.message || "Failed";
+      })
+      .addCase(get_otp.fulfilled, (state, { payload }) => {
+        state.loader = false;
+        state.otpExpires = payload?.otpExpires;
+        state.resetuuid = payload?.resetuuid;
+      })
+      //reset_password
+      .addCase(reset_password.pending, (state) => {
+        state.loader = true;
+      })
+      .addCase(reset_password.rejected, (state, { payload }) => {
+        state.loader = false;
+        state.errorMessage = payload?.message || "Failed";
+      })
+      .addCase(reset_password.fulfilled, (state, { payload }) => {
+        state.loader = false;
+        state.successMessage = payload?.message;
       });
   },
 });
