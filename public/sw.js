@@ -2,14 +2,14 @@ self.addEventListener("push", function (event) {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
-  } catch (e) {
+  } catch {
     data = {};
   }
 
-  const title = data.title || "📣 มีการแจ้งเตือนใหม่";
+  const title = data.title || "📣 ມີການແຈ້ງເຕືອນໃໝ່";
   const options = {
     body: data.body || "คุณมีการแจ้งเตือนใหม่จากระบบ",
-    icon: "/logo192.png",
+    icon: "../public/logo.jpeg",
     data: {
       url: data.url || "http://localhost:5174/", // <-- เพิ่ม url ที่ต้องการให้เปิดเมื่อคลิก
     },

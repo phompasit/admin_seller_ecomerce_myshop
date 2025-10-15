@@ -25,7 +25,7 @@ const useSocket = (userId) => {
 
     // ป้องกันการสร้าง socket ซ้ำ
     if (!socketRef.current) {
-      socketRef.current = io("http://localhost:5000", {
+      socketRef.current = io("http://167.86.78.170", {
         withCredentials: true,
         autoConnect: true,
         reconnection: true,

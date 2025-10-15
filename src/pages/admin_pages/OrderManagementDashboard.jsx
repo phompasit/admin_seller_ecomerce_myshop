@@ -343,12 +343,16 @@ const OrderManagementDashboard = () => {
   // Statistics
   const stats = useMemo(() => {
     const total = orders?.length;
-    const pending = orders?.filter((o) => o.status === "pending")?.length;
-    const shipped = orders?.filter((o) => o.status === "Shipped")?.length;
-    const delivered = orders?.filter((o) => o.status === "Delivered")?.length;
-    const cancelled = orders?.filter((o) => o.status === "Cancelled")?.length;
+    const pending = orders?.filter((o) => o.shipping_status === "pending")
+      ?.length;
+    const shipped = orders?.filter((o) => o.shipping_status === "Shipped")
+      ?.length;
+    const delivered = orders?.filter((o) => o.shipping_status === "Delivered")
+      ?.length;
+    const cancelled = orders?.filter((o) => o.shipping_status === "Cancelled")
+      ?.length;
     const totalRevenue = orders
-      ?.filter((o) => o.status !== "Cancelled")
+      ?.filter((o) => o.shipping_status !== "Cancelled")
       .reduce((sum, o) => sum + o.total, 0);
 
     return {
