@@ -85,13 +85,12 @@ const ProtectRoute = ({ route, children }) => {
     exp?.active,
   ]);
 
-  // เรียก API เพียงครั้งเดียวตอน mount
   useEffect(() => {
     const initAuth = async () => {
       try {
         setIsLoading(true);
 
-        // เรียก verifyToken ก่อน
+  
         await dispatch(verifyToken());
 
         // ถ้าเป็น seller และต้องการ verification ก็เรียก getVerifyUser
