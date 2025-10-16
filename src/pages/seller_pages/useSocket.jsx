@@ -25,7 +25,7 @@ const useSocket = (userId) => {
 
     // ป้องกันการสร้าง socket ซ้ำ
     if (!socketRef.current) {
-      socketRef.current = io("http://167.86.78.170", {
+      socketRef.current = io("https://pontoeshop.shop", {
         withCredentials: true,
         autoConnect: true,
         reconnection: true,
