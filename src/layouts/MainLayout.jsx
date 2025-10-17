@@ -281,6 +281,7 @@ const MobileSidebar = ({
   activeMenu,
   menuItems,
   exp,
+  removeOff,
 }) => {
   // const { colorMode, toggleColorMode } = useColorMode();
 
@@ -344,6 +345,7 @@ const MobileSidebar = ({
               justifyContent="flex-start"
               fontWeight="medium"
               size="sm"
+              onClick={removeOff}
             >
               ອອກຈາກລະບົບ
             </Button>
@@ -446,6 +448,7 @@ const MainLayout = () => {
           onMenuClick={handleMenuClick}
           activeMenu={activeMenu}
           menuItems={menuItems}
+          removeOff={removeOff}
         />
         {/* Main Content Area */}
         <Box

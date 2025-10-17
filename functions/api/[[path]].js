@@ -4,8 +4,7 @@ export async function onRequest(context) {
   // แก้ IP และ Port ตาม Backend ของคุณ
   const BACKEND_URL = import.meta.env.VITE_FRONTEND_URL;
   
-  const backendPath = url.pathname.replace('/api', '');
-  const backendUrl = BACKEND_URL + backendPath + url.search;
+  const backendUrl = BACKEND_URL  + url.search;
   
   console.log('Proxying to:', backendUrl);
   
